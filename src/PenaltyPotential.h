@@ -2,20 +2,7 @@
 #define PENALTYPOTENTIAL_H
 
 #include <Eigen/Core>
-
-struct VertexFaceStencil
-{
-  int p;
-  int q0,q1,q2;
-};
-
-struct EdgeEdgeStencil
-{
-  int p0,p1;
-  int q0,q1;
-};
-
-
+#include "Stencils.h"
 
 // V(q) = 0,                             primitiveDist >= eta
 //        1/2 k (primitiveDist - eta)^2  primitiveDist < eta

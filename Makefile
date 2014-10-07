@@ -9,3 +9,7 @@ bin/libcollisions.a: $(OBJ_FILES)
 
 obj/%.o: src/%.cpp
 	g++ $(CC_FLAGS) -I$(EIGEN_DIR) -c -o $@ $<
+
+clean:
+	rm obj/*
+	rm bin/*
