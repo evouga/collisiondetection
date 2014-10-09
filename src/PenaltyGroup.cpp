@@ -4,10 +4,8 @@
 using namespace Eigen;
 using namespace std;
 
-PenaltyGroup::PenaltyGroup(double curt, double dt, double eta, double stiffness) : dt_(dt), eta_(eta), stiffness_(stiffness)
-{
-	double steps = curt/dt;
-	nextstep_ = ceil(steps);
+PenaltyGroup::PenaltyGroup(double dt, double eta, double stiffness) : nextstep_(0), dt_(dt), eta_(eta), stiffness_(stiffness)
+{	
 }
 
 PenaltyGroup::~PenaltyGroup()
@@ -44,4 +42,9 @@ void PenaltyGroup::incrementTimeStep()
 double PenaltyGroup::nextFireTime() const
 {
 	return nextstep_ * dt_;
+}
+
+void PenaltyGroup::rollback()
+{
+	nextstep_ = 0;
 }

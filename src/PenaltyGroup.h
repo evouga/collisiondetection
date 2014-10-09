@@ -11,7 +11,7 @@ class EdgeEdgePenaltyPotential;
 class PenaltyGroup
 {
 public:
-	PenaltyGroup(double curt, double dt, double eta, double stiffness);
+	PenaltyGroup(double dt, double eta, double stiffness);
 	~PenaltyGroup();
 
 	void addVFStencil(VertexFaceStencil stencil);	
@@ -20,6 +20,7 @@ public:
 	void addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F);
 	void incrementTimeStep();
 	double nextFireTime() const;
+	void rollback();
 
 private:
 	PenaltyGroup(const PenaltyGroup &other);

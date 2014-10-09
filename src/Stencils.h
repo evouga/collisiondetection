@@ -1,10 +1,58 @@
 #ifndef STENCILS_H
 #define STENCILS_H
 
+#include <cassert>
+
 struct VertexFaceStencil
 {
   int p;
   int q0,q1,q2;
+
+  VertexFaceStencil(int p_, int q0_, int q1_, int q2_)
+  {
+	p = p_;
+	if(q0_ <= q1_)
+	{
+		if(q1_ <= q2_)
+		{
+			q0 = q0_;
+			q1 = q1_;
+			q2 = q2_;
+		}
+		else if(q0_ <= q2_)
+		{
+			q0 = q0_;
+			q1 = q2_;
+			q2 = q1_;
+		}
+		else
+		{
+			q0 = q2_;
+			q1 = q0_;
+			q2 = q1_;
+		}
+	}
+	else if(q0_ <= q2_)
+	{
+		q0 = q1_;
+		q1 = q0_;
+		q2 = q2_;
+	}
+	else if(q1_ <= q2_)
+	{
+		q0 = q1_;
+		q1 = q2_;
+		q2 = q0_;
+	}
+	else
+	{
+		q0 = q2_;
+		q1 = q1_;
+		q2 = q0_;
+	}
+
+	assert(q0 <= q1 && q1 <= q2);
+  }
 
   bool operator<(const VertexFaceStencil &other) const
   {
@@ -31,6 +79,33 @@ struct EdgeEdgeStencil
 {
   int p0,p1;
   int q0,q1;
+
+  EdgeEdgeStencil(int p0_, int p1_, int q0_, int q1_)
+  {
+	if(p0_ <= p1_)
+	{
+		p0 = p0_;
+		p1 = p1_;
+	}
+	else
+	{
+		p0 = p1_;
+		p1 = p0_;
+	}
+
+	if(q0_ <= q1_)
+	{
+		q0 = q0_;
+		q1 = q1_;
+	}
+	else
+	{
+		q0 = q1_;
+		q1 = q0_;
+	}
+
+	assert(p0 <= p1 && q0 <= q1);
+  }
 
   bool operator<(const EdgeEdgeStencil &other) const
   {
