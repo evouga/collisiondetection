@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <queue>
+#include <set>
 #include <Eigen/Core>
 
 class PenaltyGroup;
@@ -20,13 +21,14 @@ public:
 class ActiveLayers
 {
 public:
-	ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime);	
+	ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime, bool verbose = false);	
 	~ActiveLayers();
 
 	void addVFStencil(VertexFaceStencil stencil);	
 	void addEEStencil(EdgeEdgeStencil stencil);
 
-	bool runOneIteration(const Mesh &m, const Eigen::VectorXd &mass);
+	bool runOneIteration(const Mesh &m, SimulationState &initialState);
+	bool collisionDetection(const Eigen::VectorXd &qend, const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected);
 
 private:
 	ActiveLayers(const ActiveLayers &other);
@@ -39,8 +41,6 @@ private:
 	double VFStencilThickness(VertexFaceStencil stencil);	
 	double EEStencilThickness(EdgeEdgeStencil stencil);
 
-	bool collisionDetectionAndResponse(const SimulationState &s, const Mesh &m);
-
 	double eta_;
 	double baseDt_;
 	double baseStiffness_;
@@ -52,6 +52,8 @@ private:
 	std::priority_queue<PenaltyGroup *, std::vector<PenaltyGroup *>, PenaltyGroupComparator> groupQueue_;
 	std::map<VertexFaceStencil, int> vfdepth_;
 	std::map<EdgeEdgeStencil, int> eedepth_;
+
+	bool verbose_;
 };
 
 #endif

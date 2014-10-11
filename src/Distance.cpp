@@ -1,4 +1,5 @@
 #include "Distance.h"
+#include <iostream>
 
 using namespace Eigen;
 
@@ -20,7 +21,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q0bary = 1.0;
       q1bary = 0.0;
       q2bary = 0.0;
-      return p-q0;
+      return q0-p;
     }
 
   Vector3d bp = p-q1;
@@ -31,7 +32,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q0bary = 0.0;
       q1bary = 1.0;
       q2bary = 0.0;
-      return p-q1;
+      return q1-p;
     }
 
   double vc = d1*d4 - d3*d2;
@@ -41,7 +42,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q0bary = 1.0 - v;
       q1bary = v;
       q2bary = 0;
-      return p - (q0 + v*ab);
+      return (q0 + v*ab)-p;
     }
   
   Vector3d cp = p-q2;
@@ -52,7 +53,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q0bary = 0;
       q1bary = 0;
       q2bary = 1.0;
-      return p-q2;
+      return q2-p;
     }
 
   double vb = d5*d2 - d1*d6;
@@ -62,7 +63,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q0bary = 1-w;
       q1bary = 0;
       q2bary = w;
-      return p - (q0 + w*ac);
+      return (q0 + w*ac)-p;
     }
 
   double va = d3*d6 - d5*d4;
@@ -73,7 +74,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
       q1bary = 1.0 - w;
       q2bary = w;
       
-      return p - (q1 + w*(q2-q1));
+      return (q1 + w*(q2-q1))-p;
     }
 
   // face case
@@ -84,7 +85,7 @@ Eigen::Vector3d Distance::vertexFaceDistance(const Eigen::Vector3d &p,
   q0bary = u;
   q1bary = v;
   q2bary = w;
-  return p - (u*q0 + v*q1 + w*q2);
+  return (u*q0 + v*q1 + w*q2)-p;
 }
 
 Vector3d Distance::edgeEdgeDistance(const Eigen::Vector3d &p0, const Eigen::Vector3d &p1,
@@ -135,9 +136,11 @@ Vector3d Distance::edgeEdgeDistance(const Eigen::Vector3d &p0, const Eigen::Vect
 
   Vector3d c1 = p0 + s*d1;
   Vector3d c2 = q0 + t*d2;
-  q0bary = 1.0-s;
-  q1bary = s;
-  p0bary = 1.0-t;
-  p1bary = t;
+
+  p0bary = 1.0-s;
+  p1bary = s;
+  q0bary = 1.0-t;
+  q1bary = t;
+
   return c2-c1;
 }

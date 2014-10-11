@@ -4,10 +4,18 @@
 #include "CTCD.h"
 #include "Mesh.h"
 #include <set>
+#include <iostream>
 
 using namespace Eigen;
+using namespace std;
 
-ActiveLayers::ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime) : eta_(eta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0)
+bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const PenaltyGroup *second) const
+{
+	return second->nextFireTime() < first->nextFireTime();
+}
+
+ActiveLayers::ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
+	: eta_(eta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), verbose_(verbose)
 {
 }
 
@@ -61,33 +69,45 @@ bool ActiveLayers::step(SimulationState &s)
 	if(!groupQueue_.empty())
 	{
 		PenaltyGroup *group = groupQueue_.top();
-		groupQueue_.pop();
 
 		double newtime = group->nextFireTime();
 		if(newtime < termTime_)
 		{
+			groupQueue_.pop();
 			double dt = newtime - s.time;
 			s.q += dt * s.v;
 			VectorXd F(s.q.size());
+			F.setZero();
 			group->addForce(s.q, F);
 			for(int i=0; i<F.size(); i++)
-				F[i] /= s.m[i];
+				F[i] /= s.m[i/3];
 			s.v += F;
 			group->incrementTimeStep();
 			groupQueue_.push(group);
+			s.time = newtime;
 			return false;
 		}
 	}
 
 	double dt = termTime_ - s.time;
 	s.q += dt * s.v;
+	s.time = termTime_;
 	return true;
 }
 
 void ActiveLayers::rollback()
 {
 	for(std::vector<PenaltyGroup *>::iterator it = groups_.begin(); it != groups_.end(); ++it)
-		(*it)->rollback();	
+		(*it)->rollback();
+
+	std::priority_queue<PenaltyGroup *, std::vector<PenaltyGroup *>, PenaltyGroupComparator> newqueue;
+	while(!groupQueue_.empty())
+	{
+		newqueue.push(groupQueue_.top());
+		groupQueue_.pop();
+	}	
+
+	groupQueue_ = newqueue;
 }
 
 double ActiveLayers::layerDepth(int layer)
@@ -111,18 +131,18 @@ double ActiveLayers::EEStencilThickness(EdgeEdgeStencil stencil)
 	return layerDepth(1);
 }
 
-bool ActiveLayers::collisionDetectionAndResponse(const SimulationState &s, const Mesh &m)
+bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd)
 {
-	int nverts = m.vertices.size();
-	int nfaces = m.faces.size();
+	int nverts = m.vertices.size()/3;
+	int nfaces = m.faces.cols();
 
 	const VectorXd &qold = m.vertices;
-	const VectorXd &qnew = s.q;
+	const VectorXd &qnew = endq;
 
 	double t;
 
-	std::set<VertexFaceStencil> vfsToAdd;
-	std::set<EdgeEdgeStencil> eesToAdd;
+	vfsToAdd.clear();
+	eesToAdd.clear();
 
 	// Vertex-face proper	
 	for(int i=0; i<nverts; i++)
@@ -194,36 +214,36 @@ bool ActiveLayers::collisionDetectionAndResponse(const SimulationState &s, const
 			if(CTCD::edgeEdgeCTCD(qold.segment<3>(3*ees.p0), qold.segment<3>(3*ees.p1), qold.segment<3>(3*ees.q0), qold.segment<3>(3*ees.q1),
 					      qnew.segment<3>(3*ees.p0), qnew.segment<3>(3*ees.p1), qnew.segment<3>(3*ees.q0), qnew.segment<3>(3*ees.q1),
 					      depth, t))
-			{
+			{				
 				eesToAdd.insert(ees);
 			}
 			// vertex-edge and vertex-vertex already handled above
 		}
 	}
 
-	if(vfsToAdd.empty() && eesToAdd.empty())
-		return false;
+	return(!vfsToAdd.empty() || !eesToAdd.empty());
+}
+
+bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
+{
+	if(verbose_)
+		std::cout << "Taking an outer iteration, deepest layer is currently " << deepestLayer_ << std::endl;
+
+	rollback();
+
+	while(!step(s));
+
+	set<VertexFaceStencil> vfsToAdd;
+	set<EdgeEdgeStencil> eesToAdd;
+
+	bool collisions = collisionDetection(s.q, m, vfsToAdd, eesToAdd);
+	if(verbose_)
+		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions." << std::endl;
 
 	for(std::set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)
 		addVFStencil(*it);
 	for(std::set<EdgeEdgeStencil>::iterator it = eesToAdd.begin(); it != eesToAdd.end(); ++it)
 		addEEStencil(*it);
 
-	return true;
-}
-
-bool ActiveLayers::runOneIteration(const Mesh &m, const VectorXd &mass)
-{
-	SimulationState s;
-	s.q = m.vertices;
-	s.v.resize(s.q.size());
-	s.v.setZero();
-	s.m = mass;
-	s.time = 0;
-
-	rollback();
-
-	while(!step(s));
-
-	return collisionDetectionAndResponse(s, m);
+	return !collisions;
 }

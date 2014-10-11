@@ -2,6 +2,7 @@
 #include <vector>
 #include "rpoly.h"
 #include <Eigen/Geometry>
+#include <iostream>
 
 using namespace Eigen;
 using namespace std;
@@ -297,12 +298,14 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
         {
             // TODO
             // handle parallel edges
-            parallel.push_back(rawcoplane[i]);
+	    parallel.push_back(rawcoplane[i]);
         }
         else
+	{
             coplane.push_back(rawcoplane[i]);
+	}
     }
-    if(coplane.empty() && parallel.empty())
+    if(coplane.empty())
         return false;
 
     x10 = p1start - q1start;
@@ -356,7 +359,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
                 for (int l = 0; l < (int) b0.size(); l++)
                 {
                     for (int m = 0; m < (int) b1.size(); m++)
-                    {
+                    {	
                         vector<TimeInterval> intervals;
                         intervals.push_back(coplane[i]);
                         intervals.push_back(a0[j]);
@@ -366,8 +369,23 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
                         if (TimeInterval::overlap(intervals) )
                         {
                             TimeInterval isect = TimeInterval::intersect(intervals);
-                            mint = min(mint, isect.l);
-                            col = true;
+			    bool skip = false;
+			    for(int p = 0; p < (int)parallel.size(); p++)
+			    {
+				vector<TimeInterval> pcheck;
+				pcheck.push_back(isect);
+				pcheck.push_back(parallel[p]);
+				if(TimeInterval::overlap(pcheck) )
+				{
+				    skip = true;
+				    break;
+				}
+			    }
+			    if(!skip)
+			    {
+                                mint = min(mint, isect.l);
+                                col = true;
+			    }
                         }
                     }
                 }

@@ -13,5 +13,4 @@ obj/%.o: %.cpp
 	g++ $(CC_FLAGS) -I$(EIGEN_DIR) -I../src/ -c -o $@ $<
 
 clean:
-	rm obj/*.o
 	rm $(TARGETS)

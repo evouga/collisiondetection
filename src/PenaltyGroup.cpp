@@ -1,5 +1,6 @@
 #include "PenaltyGroup.h"
 #include "PenaltyPotential.h"
+#include <iostream>
 
 using namespace Eigen;
 using namespace std;
@@ -28,10 +29,14 @@ void PenaltyGroup::addEEStencil(EdgeEdgeStencil eestencil)
 
 void PenaltyGroup::addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F)
 {
+	VectorXd groupforce(q.size());
+	groupforce.setZero();
 	for(vector<VertexFacePenaltyPotential *>::iterator it = vfforces_.begin(); it != vfforces_.end(); ++it)
-		(*it)->addForce(q,F);
+		(*it)->addForce(q,groupforce);
 	for(vector<EdgeEdgePenaltyPotential *>::iterator it = eeforces_.begin(); it != eeforces_.end(); ++it)		
-		(*it)->addForce(q,F);
+		(*it)->addForce(q,groupforce);
+
+	F += groupforce * dt_;
 }
 
 void PenaltyGroup::incrementTimeStep()
