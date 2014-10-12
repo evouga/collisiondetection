@@ -91,7 +91,7 @@ int main()
 		masses[i] = std::numeric_limits<double>::infinity();
 	for(int i=157; i<q1.size()/3; i++)
 		masses[i] = 1.0;
-	std::cout << VelocityFilter::velocityFilter(q1, q2, f1, masses, 1e-8) << std::endl;
+	std::cout << VelocityFilter::velocityFilter(q1, q2, f1, masses, 1e-7, 1e-10) << std::endl;
 
 	writeMesh("out.obj", q2, f1);
 }

@@ -10,7 +10,7 @@ using namespace Eigen;
 using namespace std;
 
 int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &masses,
-			double eta, double baseStiffness, double baseSubstepSize, int maxRollbacks)
+			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, int maxRollbacks)
 {
 	int nverts = qstart.size()/3;
 	assert(qend.size() == 3*nverts);
@@ -45,22 +45,26 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 	if(effmaxval == 0)
 		effmaxval = 1.0;
 
-	double dt = baseSubstepSize * eta/effmaxval;
+	double dt = baseSubstepSize * outerEta/effmaxval;
 	double k = baseStiffness/dt;
 
-	std::cout << "For layer thickness " << eta << " and maximum velocity " << maxvel << ", using base timestep " << dt << " and stiffness " << k << std::endl;
+	std::cout << "For outer layer thickness " << outerEta << " and maximum velocity " << maxvel << ", using base timestep " << dt << " and stiffness " << k << std::endl;
 
-	ActiveLayers al(eta, dt, k, 1.0, true);
+	ActiveLayers al(outerEta, innerEta, dt, k, 1.0, true);
 	Mesh m;
 	m.vertices = qstart;
-	m.faces = faces;
+	m.faces = faces;	
 
-	set<VertexFaceStencil> vfs;
-	set<EdgeEdgeStencil> ees;
-	if(al.collisionDetection(qstart, m, vfs, ees))
-	{
+	double closest = al.closestDistance(qstart, m);
+
+	std::cout << "Closest primitive pair is distance " << closest << " apart at start" << std::endl;
+	
+	if(closest < innerEta)
 		return STARTING_STATE_INTERSECTS;
-	}
+
+	int neededLayers = (outerEta-innerEta)/(closest-innerEta);
+	std::cout << "It will take at least " << neededLayers << " layers to resolve this contact problem" << std::endl;
+	
 
 	for(int iter=0; iter<maxRollbacks; iter++)
 	{

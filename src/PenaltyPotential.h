@@ -10,20 +10,22 @@
 class PenaltyPotential
 {
  public:
-  PenaltyPotential(double eta, double stiffness) : eta_(eta), stiffness_(stiffness) {}
+  PenaltyPotential(double outerEta, double innerEta, double stiffness) : outerEta_(outerEta), innerEta_(innerEta), stiffness_(stiffness) {}
   virtual ~PenaltyPotential() {}
 
   virtual void addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F)=0;
 
  protected:
-  double eta_;
+  double outerEta_;
+  double innerEta_;
   double stiffness_;
+  double CoR_;
 };
 
 class VertexFacePenaltyPotential : public PenaltyPotential
 {
  public:
-  VertexFacePenaltyPotential(VertexFaceStencil stencil, double eta, double stiffness) : PenaltyPotential(eta, stiffness), stencil_(stencil) {}
+  VertexFacePenaltyPotential(VertexFaceStencil stencil, double outerEta, double innerEta, double stiffness) : PenaltyPotential(outerEta, innerEta, stiffness), stencil_(stencil) {}
 
   virtual void addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F);
 
@@ -34,7 +36,7 @@ class VertexFacePenaltyPotential : public PenaltyPotential
 class EdgeEdgePenaltyPotential : public PenaltyPotential
 {
  public:
-  EdgeEdgePenaltyPotential(EdgeEdgeStencil stencil, double eta, double stiffness) : PenaltyPotential(eta, stiffness), stencil_(stencil) {}
+  EdgeEdgePenaltyPotential(EdgeEdgeStencil stencil, double outerEta, double innerEta, double stiffness) : PenaltyPotential(outerEta, innerEta, stiffness), stencil_(stencil) {}
 
   virtual void addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F);
 

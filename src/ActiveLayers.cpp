@@ -2,6 +2,7 @@
 #include "PenaltyGroup.h"
 #include "SimulationState.h"
 #include "CTCD.h"
+#include "Distance.h"
 #include "Mesh.h"
 #include <set>
 #include <iostream>
@@ -14,8 +15,8 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 	return second->nextFireTime() < first->nextFireTime();
 }
 
-ActiveLayers::ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
-	: eta_(eta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), verbose_(verbose)
+ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), verbose_(verbose)
 {
 }
 
@@ -52,11 +53,11 @@ void ActiveLayers::addGroups(int maxdepth)
 	while(deepestLayer_ < maxdepth)
 	{
 		int depth = deepestLayer_+1;
-		double ki = baseStiffness_*depth;
+		double ki = baseStiffness_*depth*depth;
 		double etai = layerDepth(depth);
-		double dti = baseDt_ / sqrt(double(depth));
+		double dti = baseDt_ / double(depth);
 
-		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, ki);
+		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, innerEta_, ki);
 		groups_.push_back(newgroup);
 		groupQueue_.push(newgroup);
 
@@ -112,7 +113,7 @@ void ActiveLayers::rollback()
 
 double ActiveLayers::layerDepth(int layer)
 {
-	return eta_/sqrt(double(layer));
+	return innerEta_ + (outerEta_-innerEta_)/double(layer);
 }
 
 double ActiveLayers::VFStencilThickness(VertexFaceStencil stencil)
@@ -131,8 +132,49 @@ double ActiveLayers::EEStencilThickness(EdgeEdgeStencil stencil)
 	return layerDepth(1);
 }
 
-bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd)
+double ActiveLayers::closestDistance(const VectorXd &q, const Mesh &m)
 {
+	int nverts = m.vertices.size()/3;
+	int nfaces = m.faces.cols();
+	double closest = std::numeric_limits<double>::infinity();
+
+	// Vertex-face proper	
+	for(int i=0; i<nverts; i++)
+	{
+		for(int j=0; j<nfaces; j++)
+		{
+			if(m.vertexOfFace(i, j))
+				continue;
+
+			double b1, b2, b3;
+			closest = min(closest, Distance::vertexFaceDistance(q.segment<3>(3*i), q.segment<3>(3*m.faces.coeff(0, j)), q.segment<3>(3*m.faces.coeff(1, j)), q.segment<3>(3*m.faces.coeff(2, j)), b1, b2, b3).norm());
+		}
+	}
+
+	// Edge-edge proper
+	for(int edge1=0; edge1<3*nfaces; edge1++)
+	{
+		for(int edge2=edge1+1; edge2<3*nfaces; edge2++)
+		{
+			int face1 = edge1/3;
+			int face2 = edge2/3;
+			int e1v1 = m.faces.coeff(edge1%3, face1);
+			int e1v2 = m.faces.coeff((edge1+1)%3, face1);
+			int e2v1 = m.faces.coeff(edge2%3, face2);
+			int e2v2 = m.faces.coeff((edge2+1)%3, face2);
+			if(e1v1 == e2v1 || e1v1 == e2v2 || e1v2 == e2v1 || e1v2 == e2v2)
+				continue;
+			double b1, b2, b3, b4;
+			closest = min(closest, Distance::edgeEdgeDistance(q.segment<3>(3*e1v1), q.segment<3>(3*e1v2), q.segment<3>(3*e2v1), q.segment<3>(3*e2v2), b1, b2, b3, b4).norm());			
+		}
+	}
+
+	return closest;
+}
+
+bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, double &earliestTime)
+{
+	earliestTime = 1.0;
 	int nverts = m.vertices.size()/3;
 	int nfaces = m.faces.cols();
 
@@ -160,6 +202,7 @@ bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m
 						depth, t))
 			{
 				vfsToAdd.insert(vfs);
+				earliestTime = min(earliestTime, t);
 				done = true;
 			}
 			if(!done)
@@ -172,6 +215,7 @@ bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m
 								depth, t))
 					{						
 						vfsToAdd.insert(vfs);
+						earliestTime = min(earliestTime, t);
 						done = true;
 						break;
 					}
@@ -187,6 +231,7 @@ bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m
 								  depth, t))
 					{
 						vfsToAdd.insert(vfs);
+						earliestTime = min(earliestTime, t);
 						done = true;
 						break;
 					}
@@ -216,6 +261,7 @@ bool ActiveLayers::collisionDetection(const Eigen::VectorXd &endq, const Mesh &m
 					      depth, t))
 			{				
 				eesToAdd.insert(ees);
+				earliestTime = min(earliestTime, t);
 			}
 			// vertex-edge and vertex-vertex already handled above
 		}
@@ -236,9 +282,10 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 	set<VertexFaceStencil> vfsToAdd;
 	set<EdgeEdgeStencil> eesToAdd;
 
-	bool collisions = collisionDetection(s.q, m, vfsToAdd, eesToAdd);
+	double t = 0;
+	bool collisions = collisionDetection(s.q, m, vfsToAdd, eesToAdd, t);
 	if(verbose_)
-		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions." << std::endl;
+		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions, earliest at t=" << t << std::endl;
 
 	for(std::set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)
 		addVFStencil(*it);

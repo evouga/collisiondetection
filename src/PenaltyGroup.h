@@ -11,7 +11,7 @@ class EdgeEdgePenaltyPotential;
 class PenaltyGroup
 {
 public:
-	PenaltyGroup(double dt, double eta, double stiffness);
+	PenaltyGroup(double dt, double outerEta, double innerEta, double stiffness);
 	~PenaltyGroup();
 
 	void addVFStencil(VertexFaceStencil stencil);	
@@ -30,7 +30,8 @@ private:
 	std::vector<EdgeEdgePenaltyPotential *> eeforces_;
 	int nextstep_;
 	double dt_;
-	double eta_;
+	double outerEta_;
+	double innerEta_;
 	double stiffness_;
 };
 

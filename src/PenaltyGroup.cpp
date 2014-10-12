@@ -5,7 +5,7 @@
 using namespace Eigen;
 using namespace std;
 
-PenaltyGroup::PenaltyGroup(double dt, double eta, double stiffness) : nextstep_(0), dt_(dt), eta_(eta), stiffness_(stiffness)
+PenaltyGroup::PenaltyGroup(double dt, double outerEta, double innerEta, double stiffness) : nextstep_(0), dt_(dt), outerEta_(outerEta), innerEta_(innerEta), stiffness_(stiffness)
 {	
 }
 
@@ -19,12 +19,12 @@ PenaltyGroup::~PenaltyGroup()
 
 void PenaltyGroup::addVFStencil(VertexFaceStencil vfstencil)
 {
-	vfforces_.push_back(new VertexFacePenaltyPotential(vfstencil, eta_, stiffness_));
+	vfforces_.push_back(new VertexFacePenaltyPotential(vfstencil, outerEta_, innerEta_, stiffness_));
 }
 
 void PenaltyGroup::addEEStencil(EdgeEdgeStencil eestencil)
 {
-	eeforces_.push_back(new EdgeEdgePenaltyPotential(eestencil, eta_, stiffness_));
+	eeforces_.push_back(new EdgeEdgePenaltyPotential(eestencil, outerEta_, innerEta_, stiffness_));
 }
 
 void PenaltyGroup::addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F)

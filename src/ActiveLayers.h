@@ -21,14 +21,15 @@ public:
 class ActiveLayers
 {
 public:
-	ActiveLayers(double eta, double baseDt, double baseStiffness, double terminationTime, bool verbose = false);	
+	ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose = false);
 	~ActiveLayers();
 
-	void addVFStencil(VertexFaceStencil stencil);	
+	void addVFStencil(VertexFaceStencil stencil);
 	void addEEStencil(EdgeEdgeStencil stencil);
 
 	bool runOneIteration(const Mesh &m, SimulationState &initialState);
-	bool collisionDetection(const Eigen::VectorXd &qend, const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected);
+	bool collisionDetection(const Eigen::VectorXd &qend, const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, double &earliestTime);
+	double closestDistance(const Eigen::VectorXd &q, const Mesh &m);
 
 private:
 	ActiveLayers(const ActiveLayers &other);
@@ -41,7 +42,8 @@ private:
 	double VFStencilThickness(VertexFaceStencil stencil);	
 	double EEStencilThickness(EdgeEdgeStencil stencil);
 
-	double eta_;
+	double outerEta_;
+	double innerEta_;
 	double baseDt_;
 	double baseStiffness_;
 	double termTime_;

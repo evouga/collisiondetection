@@ -11,7 +11,7 @@ public:
 	const static int MAXROLLBACKS_EXCEEDED = -3;
 
 	static int velocityFilter(const Eigen::VectorXd &qstart, Eigen::VectorXd &qend, const Eigen::Matrix3Xi &faces, const Eigen::VectorXd &masses,
-			double eta, double baseStiffness = 0.1, double baseSubstepSize = 0.1, int maxRollbacks = 1000);
+			double outerEta, double innerEta, double baseStiffness = 0.1, double baseSubstepSize = 0.1, int maxRollbacks = 1000);
 };
 
 #endif
