@@ -23,7 +23,7 @@ public:
 	   apart will feel no force, and primitives approaching innerEta apart will feel infinite force.
 	   The input mesh qstart must not contain any vertex-face or edge-edge pairs that are already
 	   closer than innerEta apart. If it does, the algorithm aborts and returns STARTING_STATE_INTERSECTS.
-	   The other parameters control the phyisics of the contact response. With default parameters,
+	   The other parameters control the physics of the contact response. With default parameters,
 	   the algorithm will attempt to guess a good stiffness and substep size given the maximum velocity
 	   and minimum mass in the system. You can override this guess by manually adjusting the stiffness
 	   and/or substep size parameters. If the stiffness is too large for the time step, the simulation
@@ -35,7 +35,7 @@ public:
            caused by infinite-mass regions) or if the problem is so hard that the size of the layers reduces
 	   to close to the machine epsilon.
 	   If the algorithm succeeds, it returns the number of outer iterations that were needed to resolve
-	   all contacts. A negative number indicated a detected error (see above).
+	   all contacts. A negative number indicates a detected error (see above).
 	*/
 
 	static int velocityFilter(const Eigen::VectorXd &qstart, Eigen::VectorXd &qend, const Eigen::Matrix3Xi &faces, const Eigen::VectorXd &masses,
