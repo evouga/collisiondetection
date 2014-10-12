@@ -5,16 +5,43 @@
 #include "SimulationState.h"
 #include <iostream>
 #include <set>
+#include <fstream>
+#include <sstream>
 
 using namespace Eigen;
 using namespace std;
 
-int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &masses,
+static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
+{
+	ofstream ofs(filename);
+
+	for(int i=0; i<verts.size()/3; i++)
+	{
+		ofs << "v ";
+		for(int j=0; j<3; j++)
+			ofs << verts[3*i+j] << " ";
+		ofs << endl;
+	}
+
+	for(int i=0; i<faces.cols(); i++)
+	{
+		ofs << "f ";
+		for(int j=0; j<3; j++)
+			ofs << faces.coeff(j, i)+1 << " ";
+		ofs << endl;
+	}
+}
+
+
+using namespace Eigen;
+using namespace std;
+
+int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &invmasses,
 			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, int maxRollbacks)
 {
 	int nverts = qstart.size()/3;
 	assert(qend.size() == 3*nverts);
-	assert(masses.size() == nverts);
+	assert(invmasses.size() == 3*nverts);
 
 	int nfaces = faces.cols();
 
@@ -71,13 +98,16 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 		SimulationState s;
 		s.q = qstart;
 		s.v = qend-qstart;
-		s.m = masses;
+		s.minv = invmasses;
 		s.time = 0;
 		if(al.runOneIteration(m, s))
 		{
 			qend = s.q;
 			return iter;
 		}
+		stringstream ss;
+		ss << "iter" << iter << ".obj";
+		writeMesh(ss.str().c_str(), s.q, m.faces);
 	}
 	return MAXROLLBACKS_EXCEEDED;
 }

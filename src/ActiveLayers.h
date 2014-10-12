@@ -10,6 +10,9 @@
 
 class PenaltyGroup;
 class Mesh;
+class History;
+class BroadPhase;
+class NarrowPhase;
 struct SimulationState;
 
 class PenaltyGroupComparator
@@ -28,7 +31,7 @@ public:
 	void addEEStencil(EdgeEdgeStencil stencil);
 
 	bool runOneIteration(const Mesh &m, SimulationState &initialState);
-	bool collisionDetection(const Eigen::VectorXd &qend, const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, double &earliestTime);
+	bool collisionDetection(const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, double &earliestTime);
 	double closestDistance(const Eigen::VectorXd &q, const Mesh &m);
 
 private:
@@ -54,6 +57,10 @@ private:
 	std::priority_queue<PenaltyGroup *, std::vector<PenaltyGroup *>, PenaltyGroupComparator> groupQueue_;
 	std::map<VertexFaceStencil, int> vfdepth_;
 	std::map<EdgeEdgeStencil, int> eedepth_;
+
+	BroadPhase *bp_;
+	NarrowPhase *np_;
+	History *history_;
 
 	bool verbose_;
 };

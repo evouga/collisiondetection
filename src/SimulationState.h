@@ -7,7 +7,7 @@ struct SimulationState
 {
 	Eigen::VectorXd q;
 	Eigen::VectorXd v;
-	Eigen::VectorXd m;
+	Eigen::VectorXd minv;
 
 	double time;
 };

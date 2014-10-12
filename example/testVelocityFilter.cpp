@@ -8,7 +8,7 @@
 using namespace std;
 using namespace Eigen;
 
-void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
+static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
 {
 	ofstream ofs(filename);
 
@@ -86,12 +86,12 @@ int main()
 
 	std::cout << "Loaded " << q1.size() << " vertices, " << f1.size() << " faces." << std::endl;
 
-	VectorXd masses(q1.size()/3);
-	for(int i=0; i<157; i++)
-		masses[i] = std::numeric_limits<double>::infinity();
-	for(int i=157; i<q1.size()/3; i++)
-		masses[i] = 1.0;
-	std::cout << VelocityFilter::velocityFilter(q1, q2, f1, masses, 1e-7, 1e-10) << std::endl;
+	VectorXd invmasses(q1.size());
+	for(int i=0; i<3*157; i++)
+		invmasses[i] = 0;
+	for(int i=3*157; i<q1.size(); i++)
+		invmasses[i] = 1.0;
+	std::cout << VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 2e-8, 1e-8) << std::endl;
 
 	writeMesh("out.obj", q2, f1);
 }
