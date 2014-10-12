@@ -5,33 +5,6 @@
 #include "SimulationState.h"
 #include <iostream>
 #include <set>
-#include <fstream>
-#include <sstream>
-
-using namespace Eigen;
-using namespace std;
-
-static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
-{
-	ofstream ofs(filename);
-
-	for(int i=0; i<verts.size()/3; i++)
-	{
-		ofs << "v ";
-		for(int j=0; j<3; j++)
-			ofs << verts[3*i+j] << " ";
-		ofs << endl;
-	}
-
-	for(int i=0; i<faces.cols(); i++)
-	{
-		ofs << "f ";
-		for(int j=0; j<3; j++)
-			ofs << faces.coeff(j, i)+1 << " ";
-		ofs << endl;
-	}
-}
-
 
 using namespace Eigen;
 using namespace std;
@@ -67,15 +40,19 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 		maxvel = max(maxvel, vel);
 	}
 
-	double effmaxval = maxvel;
+	double effmaxvel = maxvel;
 
-	if(effmaxval == 0)
-		effmaxval = 1.0;
+	if(effmaxvel == 0)
+		effmaxvel = 1.0;
 
-	double dt = baseSubstepSize * outerEta/effmaxval;
+	double maxmass = 0;
+	for(int i=0; i<invmasses.size(); i++)
+		maxmass = max(maxmass, invmasses[i]);
+
+	double dt = baseSubstepSize * outerEta/effmaxvel / sqrt(maxmass);
 	double k = baseStiffness/dt;
 
-	std::cout << "For outer layer thickness " << outerEta << " and maximum velocity " << maxvel << ", using base timestep " << dt << " and stiffness " << k << std::endl;
+	std::cout << "For outer layer thickness " << outerEta << ", maximum velocity " << maxvel << ", and max inverse mass " << maxmass << ", using base timestep " << dt << " and stiffness " << k << std::endl;
 
 	ActiveLayers al(outerEta, innerEta, dt, k, 1.0, true);
 	Mesh m;
@@ -105,9 +82,6 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 			qend = s.q;
 			return iter;
 		}
-		stringstream ss;
-		ss << "iter" << iter << ".obj";
-		writeMesh(ss.str().c_str(), s.q, m.faces);
 	}
 	return MAXROLLBACKS_EXCEEDED;
 }
