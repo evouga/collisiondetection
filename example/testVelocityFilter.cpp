@@ -77,19 +77,32 @@ void loadMesh(const char *filename, VectorXd &verts, Matrix3Xi &faces)
 			faces.coeffRef(j, i) = faceidx[3*i+j]-1;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+	if(argc != 4)
+	{
+		std::cerr << "Usage: testVelocityFilter (startMesh) (endMesh) (numInfiniteMass)" << std::endl;
+		return -1;
+	}
 	VectorXd q1, q2;
 	Matrix3Xi f1, f2;
-	loadMesh("mesh1.obj", q1, f1);
-	loadMesh("mesh2.obj", q2, f2);
+	loadMesh(argv[1], q1, f1);
+	loadMesh(argv[2], q2, f2);
+
+	int numinfinite = strtod(argv[3], NULL);
 
 	std::cout << "Loaded " << q1.size() << " vertices, " << f1.size() << " faces." << std::endl;
 
+	if(numinfinite >= q1.size()/3)
+	{
+		std::cerr << "Bad value of numInfiniteMass" << std::endl;
+		return -1;
+	}
+
 	VectorXd invmasses(q1.size());
-	for(int i=0; i<3*157; i++)
+	for(int i=0; i<3*numinfinite; i++)
 		invmasses[i] = 0;
-	for(int i=3*157; i<q1.size(); i++)
+	for(int i=3*numinfinite; i<q1.size(); i++)
 		invmasses[i] = 1.0;
 	std::cout << VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 2e-8, 1e-8) << std::endl;
 
