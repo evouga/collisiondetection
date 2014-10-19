@@ -17,17 +17,19 @@ public:
 	void addVFStencil(VertexFaceStencil stencil);	
 	void addEEStencil(EdgeEdgeStencil stencil);
 
-	void addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F);
+	bool addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F);
 	void incrementTimeStep();
 	double nextFireTime() const;
 	void rollback();
+	double getDt() {return dt_;}
+	double getOuterEta() {return outerEta_;}
 
 private:
 	PenaltyGroup(const PenaltyGroup &other);
 	PenaltyGroup &operator=(const PenaltyGroup &other);
 
-	std::vector<VertexFacePenaltyPotential *> vfforces_;
-	std::vector<EdgeEdgePenaltyPotential *> eeforces_;
+	std::vector<VertexFaceStencil> vfstencils_;
+	std::vector<EdgeEdgeStencil> eestencils_;
 	int nextstep_;
 	double dt_;
 	double outerEta_;

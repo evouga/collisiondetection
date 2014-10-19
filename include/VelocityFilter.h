@@ -39,7 +39,7 @@ public:
 	*/
 
 	static int velocityFilter(const Eigen::VectorXd &qstart, Eigen::VectorXd &qend, const Eigen::Matrix3Xi &faces, const Eigen::VectorXd &masses,
-			double outerEta, double innerEta, double baseStiffness = 0.001, double baseSubstepSize = 0.1, int maxRollbacks = 1000);
+			double outerEta, double innerEta, double baseStiffness = .0001, double baseSubstepSize = 0.0001, int maxRollbacks = 1000);
 };
 
 #endif

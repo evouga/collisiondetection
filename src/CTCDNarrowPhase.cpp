@@ -2,6 +2,7 @@
 #include "History.h"
 #include "CTCD.h"
 #include <set>
+#include <iostream>
 
 using namespace std;
 
@@ -37,13 +38,18 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 		if(next == sh.end())
 			break;
 
+		double tinterval = next->time - it->time;
+
+		bool found = false;
+
 		double t;
 		if(CTCD::vertexFaceCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 						next->pos[0], next->pos[1], next->pos[2], next->pos[3],
 						eta, t))
 		{
-			earliestTime = min(earliestTime, it->time);
-			return true;
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			std::cout << "VF " << it->time + t*tinterval << " " << vfs.p << " " << vfs.q0 << " " << vfs.q1 << " " << vfs.q2 << std::endl;
+			found = true;
 		}
 			
 		// Vertex-face edges
@@ -53,8 +59,8 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						next->pos[0], next->pos[1+(edge%3)], next->pos[1+ ((edge+1)%3)],
 						eta, t))
 			{
-				earliestTime = min(earliestTime, it->time);
-				return true;
+				earliestTime = min(earliestTime, it->time + t*tinterval);
+				found = true;
 			}
 		}
 		// Vertex-face vertices
@@ -64,10 +70,12 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						  next->pos[0], next->pos[1+vert],
 						  eta, t))
 			{
-				earliestTime = min(earliestTime, it->time);
-				return true;
+				earliestTime = min(earliestTime, it->time + t*tinterval);
+				found = true;
 			}
 		}
+		if(found)
+			return true;
 	}
 	return false;
 }
@@ -88,12 +96,14 @@ bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta
 		if(next == sh.end())
 			break;
 
+		double tinterval = next->time - it->time;
+
 		double t;
 		if(CTCD::edgeEdgeCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 					next->pos[0], next->pos[1], next->pos[2], next->pos[3],
 					      eta, t))
 		{
-			earliestTime = min(earliestTime, it->time);				
+			earliestTime = min(earliestTime, it->time + t*tinterval);				
 			return true;
 		}
 	}

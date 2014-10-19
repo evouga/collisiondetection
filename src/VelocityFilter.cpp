@@ -5,9 +5,34 @@
 #include "SimulationState.h"
 #include <iostream>
 #include <set>
+#include <fstream>
+#include <sstream>
 
 using namespace Eigen;
 using namespace std;
+
+
+static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
+{
+	ofstream ofs(filename);
+
+	for(int i=0; i<verts.size()/3; i++)
+	{
+		ofs << "v ";
+		for(int j=0; j<3; j++)
+			ofs << verts[3*i+j] << " ";
+		ofs << endl;
+	}
+
+	for(int i=0; i<faces.cols(); i++)
+	{
+		ofs << "f ";
+		for(int j=0; j<3; j++)
+			ofs << faces.coeff(j, i)+1 << " ";
+		ofs << endl;
+	}
+}
+
 
 int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &invmasses,
 			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, int maxRollbacks)
@@ -33,26 +58,14 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 		}
 	}
 
-	double maxvel = 0.0;
-	for(int i=0; i<nverts; i++)
-	{
-		double vel = (qend.segment<3>(3*i) - qstart.segment<3>(3*i) ).norm();
-		maxvel = max(maxvel, vel);
-	}
-
-	double effmaxvel = maxvel;
-
-	if(effmaxvel == 0)
-		effmaxvel = 1.0;
-
 	double maxmass = 0;
 	for(int i=0; i<invmasses.size(); i++)
 		maxmass = max(maxmass, invmasses[i]);
 
-	double dt = baseSubstepSize * outerEta/effmaxvel / sqrt(maxmass);
-	double k = baseStiffness/dt;
+	double dt = baseSubstepSize;
+	double k = baseStiffness/dt*sqrt(maxmass);
 
-	std::cout << "For outer layer thickness " << outerEta << ", maximum velocity " << maxvel << ", and max inverse mass " << maxmass << ", using base timestep " << dt << " and stiffness " << k << std::endl;
+	std::cout << "For outer layer thickness " << outerEta << " and max inverse mass " << maxmass << ", using base timestep " << dt << " and stiffness " << k << std::endl;
 
 	ActiveLayers al(outerEta, innerEta, dt, k, 1.0, true);
 	Mesh m;
@@ -82,6 +95,9 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 			qend = s.q;
 			return iter;
 		}
+		stringstream ss;
+		ss << "iter_" << iter << ".obj";
+		writeMesh(ss.str().c_str(), s.q, m.faces);
 	}
 	return MAXROLLBACKS_EXCEEDED;
 }

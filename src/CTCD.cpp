@@ -55,7 +55,7 @@ int CTCD::getQuadRoots(double a, double b, double c, double &t0, double &t1) {
     else if (D == 0)
     {
         roots = 1;
-        t0 = -b / a;
+        t0 = -b / a / 2.0;
     }
     return roots;
 }

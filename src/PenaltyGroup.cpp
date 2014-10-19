@@ -11,32 +11,36 @@ PenaltyGroup::PenaltyGroup(double dt, double outerEta, double innerEta, double s
 
 PenaltyGroup::~PenaltyGroup()
 {
-	for(vector<VertexFacePenaltyPotential *>::iterator it = vfforces_.begin(); it != vfforces_.end(); ++it)
-		delete *it;
-	for(vector<EdgeEdgePenaltyPotential *>::iterator it = eeforces_.begin(); it != eeforces_.end(); ++it)
-		delete *it;
 }
 
 void PenaltyGroup::addVFStencil(VertexFaceStencil vfstencil)
 {
-	vfforces_.push_back(new VertexFacePenaltyPotential(vfstencil, outerEta_, innerEta_, stiffness_));
+	vfstencils_.push_back(vfstencil);
 }
 
 void PenaltyGroup::addEEStencil(EdgeEdgeStencil eestencil)
 {
-	eeforces_.push_back(new EdgeEdgePenaltyPotential(eestencil, outerEta_, innerEta_, stiffness_));
+	eestencils_.push_back(eestencil);
 }
 
-void PenaltyGroup::addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F)
+bool PenaltyGroup::addForce(const Eigen::VectorXd &q, Eigen::VectorXd &F)
 {
 	VectorXd groupforce(q.size());
 	groupforce.setZero();
-	for(vector<VertexFacePenaltyPotential *>::iterator it = vfforces_.begin(); it != vfforces_.end(); ++it)
-		(*it)->addForce(q,groupforce);
-	for(vector<EdgeEdgePenaltyPotential *>::iterator it = eeforces_.begin(); it != eeforces_.end(); ++it)		
-		(*it)->addForce(q,groupforce);
+	bool newused = false;
+	for(vector<VertexFaceStencil>::iterator it = vfstencils_.begin(); it != vfstencils_.end(); ++it)
+	{
+		bool fired = VertexFacePenaltyPotential::addForce(q,groupforce, *it, outerEta_, innerEta_, stiffness_);
+		newused |= (fired && it->isnew);
+	}
+	for(vector<EdgeEdgeStencil>::iterator it = eestencils_.begin(); it != eestencils_.end(); ++it)		
+	{
+		bool fired = EdgeEdgePenaltyPotential::addForce(q,groupforce, *it, outerEta_, innerEta_, stiffness_);
+		newused |= (fired && it->isnew);
+	}
 
 	F += groupforce * dt_;
+	return newused;
 }
 
 void PenaltyGroup::incrementTimeStep()
@@ -52,4 +56,8 @@ double PenaltyGroup::nextFireTime() const
 void PenaltyGroup::rollback()
 {
 	nextstep_ = 0;
+	for(vector<VertexFaceStencil>::iterator it = vfstencils_.begin(); it != vfstencils_.end(); ++it)
+		it->isnew = false;
+	for(vector<EdgeEdgeStencil>::iterator it = eestencils_.begin(); it != eestencils_.end(); ++it)
+		it->isnew = false;
 }

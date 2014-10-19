@@ -63,6 +63,7 @@ private:
 	History *history_;
 
 	bool verbose_;
+	double earliestTime_;
 };
 
 #endif

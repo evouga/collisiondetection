@@ -7,8 +7,9 @@ struct VertexFaceStencil
 {
   int p;
   int q0,q1,q2;
+  bool isnew;
 
-  VertexFaceStencil(int p_, int q0_, int q1_, int q2_)
+  VertexFaceStencil(int p_, int q0_, int q1_, int q2_) : isnew(true)
   {
 	p = p_;
 	if(q0_ <= q1_)
@@ -79,8 +80,9 @@ struct EdgeEdgeStencil
 {
   int p0,p1;
   int q0,q1;
+  bool isnew;
 
-  EdgeEdgeStencil(int p0_, int p1_, int q0_, int q1_)
+  EdgeEdgeStencil(int p0_, int p1_, int q0_, int q1_) : isnew(true)
   {
 	if(p0_ <= p1_)
 	{

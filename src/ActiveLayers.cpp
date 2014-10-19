@@ -18,7 +18,7 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 }
 
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), verbose_(verbose)
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
 {
 	bp_ = new TrivialBroadPhase();
 	np_ = new CTCDNarrowPhase();
@@ -61,9 +61,9 @@ void ActiveLayers::addGroups(int maxdepth)
 	while(deepestLayer_ < maxdepth)
 	{
 		int depth = deepestLayer_+1;
-		double ki = baseStiffness_*depth*depth;
+		double ki = baseStiffness_*depth*depth*depth;
 		double etai = layerDepth(depth);
-		double dti = baseDt_ / double(depth);
+		double dti = baseDt_ / double(depth) / sqrt(double(depth));
 
 		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, innerEta_, ki);
 		groups_.push_back(newgroup);
@@ -87,7 +87,12 @@ bool ActiveLayers::step(SimulationState &s)
 			s.q += dt * s.v;
 			VectorXd F(s.q.size());
 			F.setZero();
-			group->addForce(s.q, F);
+			bool newtouched = group->addForce(s.q, F);
+			if(newtouched && newtime < earliestTime_)
+			{
+				std::cout << newtime << " wasn't suppose to fire before " << earliestTime_ << std::endl;
+				exit(0);
+			}
 			s.v += s.minv.asDiagonal()*F;
 			int nverts = s.q.size()/3;
 			for(int i=0; i<nverts; i++)
@@ -213,7 +218,6 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 
 	eesToAdd.clear();
 	vfsToAdd.clear();
-
 	np_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd, earliestTime);
 
 	return(!vfsToAdd.empty() || !eesToAdd.empty());
@@ -222,9 +226,12 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 {
 	if(verbose_)
-		std::cout << "Taking an outer iteration, deepest layer is currently " << deepestLayer_ << std::endl;
-
-	rollback();
+	{
+		std::cout << "Taking an outer iteration, deepest layer is currently " << deepestLayer_;
+	 	if(deepestLayer_)
+			std::cout << " with outer thickness " << groups_[deepestLayer_-1]->getOuterEta() << " and dt " << groups_[deepestLayer_-1]->getDt();
+		std::cout << std::endl;
+	}
 
 	delete history_;
 	history_ = new History(s.q);
@@ -241,6 +248,15 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 	bool collisions = collisionDetection(m, vfsToAdd, eesToAdd, t);
 	if(verbose_)
 		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions, earliest at t=" << t << std::endl;
+
+	if(t < earliestTime_)
+	{
+		std::cout << "New earliest time " << t << " earlier than old " << earliestTime_ << std::endl;
+		exit(0);
+	}
+	earliestTime_ = t;
+
+	rollback();
 
 	for(std::set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)
 		addVFStencil(*it);
