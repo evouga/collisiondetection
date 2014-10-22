@@ -9,7 +9,7 @@ struct SimulationState
 	Eigen::VectorXd v;
 	Eigen::VectorXd minv;
 
-	double time;
+	Eigen::VectorXd lastUpdateTime;
 };
 
 #endif

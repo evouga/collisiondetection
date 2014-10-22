@@ -1,5 +1,6 @@
 #include "History.h"
 #include <set>
+#include <iostream>
 
 using namespace Eigen;
 using namespace std;
@@ -17,11 +18,25 @@ History::History(const VectorXd &qstart)
 	}
 }
 
-void History::addHistory(int vert, double time, const Eigen::Vector3d &pos)
+void History::addHistory(int vert, double time, const Eigen::Vector3d &pos, History *oldhistory, bool check)
 {
 	HistoryEntry newentry;
 	newentry.time = time;
 	newentry.pos = pos;
+	if(check)
+	{
+		int entry = history_[vert].size();
+		if(oldhistory->history_[vert].size() <= entry)
+		{
+			cerr << "No corresponding history entry" << endl;
+			exit(0);
+		}
+		if(!(oldhistory->history_[vert][entry] == newentry))
+		{
+			cerr << "History discrepancy" << endl;
+			exit(0);
+		}
+	}
 	history_[vert].push_back(newentry);
 }
 

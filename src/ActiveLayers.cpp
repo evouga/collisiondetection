@@ -18,7 +18,7 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 }
 
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), oldhistory_(NULL), verbose_(verbose), earliestTime_(0)
 {
 	bp_ = new TrivialBroadPhase();
 	np_ = new CTCDNarrowPhase();
@@ -29,6 +29,7 @@ ActiveLayers::~ActiveLayers()
 	for(std::vector<PenaltyGroup *>::iterator it = groups_.begin(); it != groups_.end(); ++it)
 		delete *it;
 	
+	delete oldhistory_;
 	delete history_;
 	delete bp_;
 	delete np_;
@@ -75,6 +76,8 @@ void ActiveLayers::addGroups(int maxdepth)
 
 bool ActiveLayers::step(SimulationState &s)
 {
+	int nverts = s.q.size()/3;
+
 	if(!groupQueue_.empty())
 	{
 		PenaltyGroup *group = groupQueue_.top();
@@ -82,19 +85,21 @@ bool ActiveLayers::step(SimulationState &s)
 		double newtime = group->nextFireTime();
 		if(newtime < termTime_)
 		{
+			std::cout << "now at time " << newtime << std::endl;
 			groupQueue_.pop();
-			double dt = newtime - s.time;
-			s.q += dt * s.v;
+			VectorXd newq(3*nverts);
+			for(int i=0; i<3*nverts; i++)
+				newq[i] = s.q[i] + (newtime-s.lastUpdateTime[i])*s.v[i];
+
 			VectorXd F(s.q.size());
 			F.setZero();
-			bool newtouched = group->addForce(s.q, F);
+			bool newtouched = group->addForce(newq, F);
 			if(newtouched && newtime < earliestTime_)
 			{
 				std::cout << newtime << " wasn't suppose to fire before " << earliestTime_ << std::endl;
 				exit(0);
 			}
 			s.v += s.minv.asDiagonal()*F;
-			int nverts = s.q.size()/3;
 			for(int i=0; i<nverts; i++)
 			{
 				bool touched = false;
@@ -102,18 +107,26 @@ bool ActiveLayers::step(SimulationState &s)
 					if(F[3*i+j] != 0.0)
 						touched = true;
 				if(touched)
-					history_->addHistory(i, newtime, s.q.segment<3>(3*i));
+				{
+					for(int j=0; j<3; j++)
+					{
+						s.q[3*i+j] = newq[3*i+j];
+						s.lastUpdateTime[3*i+j] = newtime;
+					}
+					history_->addHistory(i, newtime, s.q.segment<3>(3*i), oldhistory_, newtime < earliestTime_);
+				}
 			}
 			group->incrementTimeStep();
 			groupQueue_.push(group);
-			s.time = newtime;
 			return false;
 		}
 	}
 
-	double dt = termTime_ - s.time;
-	s.q += dt * s.v;
-	s.time = termTime_;
+	for(int i=0; i<3*nverts; i++)
+	{
+		s.q[i] += (termTime_ - s.lastUpdateTime[i])*s.v[i];
+		s.lastUpdateTime[i] = termTime_;
+	}
 	history_->finishHistory(s.q);
 	return true;
 }
@@ -233,7 +246,8 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 		std::cout << std::endl;
 	}
 
-	delete history_;
+	delete oldhistory_;
+	oldhistory_ = history_;
 	history_ = new History(s.q);
 
 	while(!step(s));

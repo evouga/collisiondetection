@@ -8,6 +8,11 @@ struct HistoryEntry
 {
 	double time;
 	Eigen::Vector3d pos;
+
+	bool operator==(const HistoryEntry &other)
+	{
+		return time == other.time && pos == other.pos;
+	}
 };
 
 struct StitchedEntry
@@ -21,7 +26,7 @@ class History
 public:
 	History(const Eigen::VectorXd &qstart);
 	
-	void addHistory(int vert, double time, const Eigen::Vector3d &pos);
+	void addHistory(int vert, double time, const Eigen::Vector3d &pos, History *oldhistory, bool check);
 	void finishHistory(const Eigen::VectorXd &qend);
 
 	int countHistoryEntries();

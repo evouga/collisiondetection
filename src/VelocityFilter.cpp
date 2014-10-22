@@ -89,7 +89,8 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 		s.q = qstart;
 		s.v = qend-qstart;
 		s.minv = invmasses;
-		s.time = 0;
+		s.lastUpdateTime.resize(qstart.size());
+		s.lastUpdateTime.setZero();
 		if(al.runOneIteration(m, s))
 		{
 			qend = s.q;
