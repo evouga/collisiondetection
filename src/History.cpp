@@ -18,25 +18,11 @@ History::History(const VectorXd &qstart)
 	}
 }
 
-void History::addHistory(int vert, double time, const Eigen::Vector3d &pos, History *oldhistory, bool check)
+void History::addHistory(int vert, double time, const Eigen::Vector3d &pos)
 {
 	HistoryEntry newentry;
 	newentry.time = time;
 	newentry.pos = pos;
-	if(check)
-	{
-		int entry = history_[vert].size();
-		if(oldhistory->history_[vert].size() <= entry)
-		{
-			cerr << "No corresponding history entry" << endl;
-			exit(0);
-		}
-		if(!(oldhistory->history_[vert][entry] == newentry))
-		{
-			cerr << "History discrepancy" << endl;
-			exit(0);
-		}
-	}
 	history_[vert].push_back(newentry);
 }
 

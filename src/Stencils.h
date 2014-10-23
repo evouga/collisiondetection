@@ -2,6 +2,7 @@
 #define STENCILS_H
 
 #include <cassert>
+#include <utility>
 
 struct VertexFaceStencil
 {
@@ -106,7 +107,13 @@ struct EdgeEdgeStencil
 		q1 = q0_;
 	}
 
-	assert(p0 <= p1 && q0 <= q1);
+	if(p0 > q0)
+	{
+		std::swap(q0, p0);
+		std::swap(q1, p1);
+	}
+
+	assert(p0 <= p1 && q0 <= q1 && p0 <= q0);
   }
 
   bool operator<(const EdgeEdgeStencil &other) const

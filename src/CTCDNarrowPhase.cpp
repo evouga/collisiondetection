@@ -48,7 +48,7 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						eta, t))
 		{
 			earliestTime = min(earliestTime, it->time + t*tinterval);
-			std::cout << "VF " << it->time + t*tinterval << " " << vfs.p << " " << vfs.q0 << " " << vfs.q1 << " " << vfs.q2 << std::endl;
+			//std::cout << "VF " << it->time + t*tinterval << " " << vfs.p << " " << vfs.q0 << " " << vfs.q1 << " " << vfs.q2 << std::endl;
 			found = true;
 		}
 			

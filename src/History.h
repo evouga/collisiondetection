@@ -26,12 +26,13 @@ class History
 public:
 	History(const Eigen::VectorXd &qstart);
 	
-	void addHistory(int vert, double time, const Eigen::Vector3d &pos, History *oldhistory, bool check);
+	void addHistory(int vert, double time, const Eigen::Vector3d &pos);
 	void finishHistory(const Eigen::VectorXd &qend);
 
 	int countHistoryEntries();
 	const Eigen::Vector3d getPosAtTime(int vert, double time) const;
 	void stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const;
+	const std::vector<HistoryEntry> &getVertexHistory(int vert) const {return history_[vert];}
 
 private:
 	std::vector<std::vector<HistoryEntry> > history_;

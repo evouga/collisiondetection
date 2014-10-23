@@ -14,7 +14,7 @@ bool VertexFacePenaltyPotential::addForce(const Eigen::VectorXd &q, Eigen::Vecto
     return false;
 
   Vector3d localF = stiffness * (outerEta - dist )/(outerEta - innerEta) * closestVec/dist;
-  std::cout << "VF " << stencil.p << " " << stencil.q0 << " " <<  stencil.q1 << " " << stencil.q2 << std::endl;
+  //std::cout << "VF " << stencil.p << " " << stencil.q0 << " " <<  stencil.q1 << " " << stencil.q2 << std::endl;
   F.segment<3>(3*stencil.p) -= localF;
   F.segment<3>(3*stencil.q0) += bary0*localF;
   F.segment<3>(3*stencil.q1) += bary1*localF;
@@ -33,7 +33,7 @@ bool EdgeEdgePenaltyPotential::addForce(const Eigen::VectorXd &q, Eigen::VectorX
     return false;
 
   Vector3d localF = stiffness * (outerEta - dist)/(outerEta - innerEta) * closestVec/dist;
-  std::cout << "EE " << stencil.p0 << " " << stencil.p1 << " " <<  stencil.q0 << " " << stencil.q1 << std::endl;
+  //std::cout << "EE " << stencil.p0 << " " << stencil.p1 << " " <<  stencil.q0 << " " << stencil.q1 << std::endl;
   F.segment<3>(3*stencil.p0) -= baryp0*localF;
   F.segment<3>(3*stencil.p1) -= baryp1*localF;
   F.segment<3>(3*stencil.q0) += baryq0*localF;

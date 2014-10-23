@@ -61,7 +61,6 @@ private:
 	BroadPhase *bp_;
 	NarrowPhase *np_;
 	History *history_;
-	History *oldhistory_;
 
 	bool verbose_;
 	double earliestTime_;

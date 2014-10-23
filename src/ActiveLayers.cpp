@@ -8,6 +8,7 @@
 #include <iostream>
 #include "History.h"
 #include "RetrospectiveDetection.h"
+#include "AABBBroadPhase.h"
 
 using namespace Eigen;
 using namespace std;
@@ -18,9 +19,9 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 }
 
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), oldhistory_(NULL), verbose_(verbose), earliestTime_(0)
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
 {
-	bp_ = new TrivialBroadPhase();
+	bp_ = new AABBBroadPhase();
 	np_ = new CTCDNarrowPhase();
 }
 
@@ -29,7 +30,6 @@ ActiveLayers::~ActiveLayers()
 	for(std::vector<PenaltyGroup *>::iterator it = groups_.begin(); it != groups_.end(); ++it)
 		delete *it;
 	
-	delete oldhistory_;
 	delete history_;
 	delete bp_;
 	delete np_;
@@ -38,23 +38,27 @@ ActiveLayers::~ActiveLayers()
 void ActiveLayers::addVFStencil(VertexFaceStencil stencil)
 {
 	int olddepth = vfdepth_[stencil];
-	int newdepth = 1 + olddepth;
 
-	addGroups(newdepth);
+	for(int i=0; i<5; i++)
+	{
+		addGroups(olddepth+i+1);
 
-	groups_[olddepth]->addVFStencil(stencil);
-	vfdepth_[stencil]++;	
+		groups_[olddepth+i]->addVFStencil(stencil);
+		vfdepth_[stencil]++;	
+	}
 }
 
 void ActiveLayers::addEEStencil(EdgeEdgeStencil stencil)
 {
 	int olddepth = eedepth_[stencil];
-	int newdepth = 1 + olddepth;
 
-	addGroups(newdepth);
+	for(int i=0; i<5; i++)
+	{
+		addGroups(olddepth+i+1);
 
-	groups_[olddepth]->addEEStencil(stencil);
-	eedepth_[stencil]++;	
+		groups_[olddepth+i]->addEEStencil(stencil);
+		eedepth_[stencil]++;	
+	}
 }
 
 void ActiveLayers::addGroups(int maxdepth)
@@ -77,6 +81,8 @@ void ActiveLayers::addGroups(int maxdepth)
 bool ActiveLayers::step(SimulationState &s)
 {
 	int nverts = s.q.size()/3;
+	VectorXd F(s.q.size());
+	VectorXd newq(s.q.size());
 
 	if(!groupQueue_.empty())
 	{
@@ -85,13 +91,10 @@ bool ActiveLayers::step(SimulationState &s)
 		double newtime = group->nextFireTime();
 		if(newtime < termTime_)
 		{
-			std::cout << "now at time " << newtime << std::endl;
 			groupQueue_.pop();
-			VectorXd newq(3*nverts);
 			for(int i=0; i<3*nverts; i++)
 				newq[i] = s.q[i] + (newtime-s.lastUpdateTime[i])*s.v[i];
 
-			VectorXd F(s.q.size());
 			F.setZero();
 			bool newtouched = group->addForce(newq, F);
 			if(newtouched && newtime < earliestTime_)
@@ -113,7 +116,7 @@ bool ActiveLayers::step(SimulationState &s)
 						s.q[3*i+j] = newq[3*i+j];
 						s.lastUpdateTime[3*i+j] = newtime;
 					}
-					history_->addHistory(i, newtime, s.q.segment<3>(3*i), oldhistory_, newtime < earliestTime_);
+					history_->addHistory(i, newtime, s.q.segment<3>(3*i));
 				}
 			}
 			group->incrementTimeStep();
@@ -246,8 +249,7 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 		std::cout << std::endl;
 	}
 
-	delete oldhistory_;
-	oldhistory_ = history_;
+	delete history_;
 	history_ = new History(s.q);
 
 	while(!step(s));
