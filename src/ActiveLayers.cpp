@@ -66,9 +66,10 @@ void ActiveLayers::addGroups(int maxdepth)
 	while(deepestLayer_ < maxdepth)
 	{
 		int depth = deepestLayer_+1;
+		double fudge = 1e-4; // To stop layer timesteps from exactly coinciding
 		double ki = baseStiffness_*depth*depth*depth;
 		double etai = layerDepth(depth);
-		double dti = baseDt_ / double(depth) / sqrt(double(depth));
+		double dti = baseDt_ / double(depth) / sqrt(double(depth)+fudge);
 
 		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, innerEta_, ki, CoR_);
 		groups_.push_back(newgroup);
@@ -98,8 +99,9 @@ bool ActiveLayers::step(SimulationState &s)
 				int vert = *it;
 				for(int j=0; j<3; j++)
 				{
+					double dt = newtime - s.lastUpdateTime[3*vert+j];
 					newq[3*vert+j] = s.q[3*vert+j] + (newtime-s.lastUpdateTime[3*vert+j])*s.v[3*vert+j];
-					newv[3*vert+j] = (newq[3*vert+j]-s.q[3*vert+j])/(newtime-s.lastUpdateTime[3*vert+j]);
+					newv[3*vert+j] = (newq[3*vert+j]-s.q[3*vert+j])/dt;
 				}
 			}
 
@@ -110,7 +112,7 @@ bool ActiveLayers::step(SimulationState &s)
 				std::cout << newtime << " wasn't suppose to fire before " << earliestTime_ << std::endl;
 				exit(0);
 			}
-			s.v += s.minv.asDiagonal()*F;
+
 			for(set<int>::iterator it = group->getGroupStencil().begin(); it != group->getGroupStencil().end(); ++it)
 			{
 				int vert = *it;
@@ -119,6 +121,7 @@ bool ActiveLayers::step(SimulationState &s)
 				{
 					if(F[3*vert+j] != 0.0)
 						touched = true;
+					s.v[3*vert+j] += s.minv[3*vert+j]*F[3*vert+j];
 					s.q[3*vert+j] = newq[3*vert+j];
 					s.lastUpdateTime[3*vert+j] = newtime;
 				}
@@ -182,35 +185,49 @@ double ActiveLayers::closestDistance(const VectorXd &q, const Mesh &m)
 	int nfaces = m.faces.cols();
 	double closest = std::numeric_limits<double>::infinity();
 
-	// Vertex-face proper	
 	for(int i=0; i<nverts; i++)
 	{
 		for(int j=0; j<nfaces; j++)
 		{
-			if(m.vertexOfFace(i, j))
+			if(m.vertexOfFace(i,j))
 				continue;
-
-			double b1, b2, b3;
-			closest = min(closest, Distance::vertexFaceDistance(q.segment<3>(3*i), q.segment<3>(3*m.faces.coeff(0, j)), q.segment<3>(3*m.faces.coeff(1, j)), q.segment<3>(3*m.faces.coeff(2, j)), b1, b2, b3).norm());
+			for(int k=0; k<3; k++)
+			{
+				double dist = (q.segment<3>(3*i)-q.segment<3>(3*m.faces.coeff(k,j))).squaredNorm();
+				if(dist < closest)
+					closest = dist;
+			}
 		}
 	}
+	closest = sqrt(closest);
 
-	// Edge-edge proper
-	for(int edge1=0; edge1<3*nfaces; edge1++)
+	if(verbose_)
+		std::cout << "Closest distance conservative bound: " << closest << std::endl;;
+
+	History h(q);
+	h.finishHistory(q);
+
+	set<VertexFaceStencil> vfs;
+	set<EdgeEdgeStencil> ees;
+
+	bp_->findCollisionCandidates(h, m, closest, vfs, ees);	
+
+	if(verbose_)
+		std::cout << "Checking " << vfs.size() << " vertex-face and " << ees.size() << " edge-edge stencils" << std::endl;
+
+	for(set<VertexFaceStencil>::iterator it = vfs.begin(); it != vfs.end(); ++it)
 	{
-		for(int edge2=edge1+1; edge2<3*nfaces; edge2++)
-		{
-			int face1 = edge1/3;
-			int face2 = edge2/3;
-			int e1v1 = m.faces.coeff(edge1%3, face1);
-			int e1v2 = m.faces.coeff((edge1+1)%3, face1);
-			int e2v1 = m.faces.coeff(edge2%3, face2);
-			int e2v2 = m.faces.coeff((edge2+1)%3, face2);
-			if(e1v1 == e2v1 || e1v1 == e2v2 || e1v2 == e2v1 || e1v2 == e2v2)
-				continue;
-			double b1, b2, b3, b4;
-			closest = min(closest, Distance::edgeEdgeDistance(q.segment<3>(3*e1v1), q.segment<3>(3*e1v2), q.segment<3>(3*e2v1), q.segment<3>(3*e2v2), b1, b2, b3, b4).norm());			
-		}
+		double t;
+		double dist = Distance::vertexFaceDistance(q.segment<3>(3*it->p), q.segment<3>(3*it->q0), q.segment<3>(3*it->q1), q.segment<3>(3*it->q2), t, t, t).norm();
+		if(dist < closest)
+			closest = dist;
+	}
+	for(set<EdgeEdgeStencil>::iterator it = ees.begin(); it != ees.end(); ++it)
+	{
+		double t;
+		double dist = Distance::edgeEdgeDistance(q.segment<3>(3*it->p0), q.segment<3>(3*it->p1), q.segment<3>(3*it->q0), q.segment<3>(3*it->q1), t, t, t, t).norm();
+		if(dist < closest)
+			closest = dist;
 	}
 
 	return closest;
