@@ -24,7 +24,7 @@ public:
 class ActiveLayers
 {
 public:
-	ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose = false);
+	ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, double CoR, bool verbose = false);
 	~ActiveLayers();
 
 	void addVFStencil(VertexFaceStencil stencil);
@@ -50,6 +50,7 @@ private:
 	double baseDt_;
 	double baseStiffness_;
 	double termTime_;
+	double CoR_;
 	
 	int deepestLayer_;
 

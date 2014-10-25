@@ -23,12 +23,14 @@ public:
 	   apart will feel no force, and primitives approaching innerEta apart will feel infinite force.
 	   The input mesh qstart must not contain any vertex-face or edge-edge pairs that are already
 	   closer than innerEta apart. If it does, the algorithm aborts and returns STARTING_STATE_INTERSECTS.
-	   The other parameters control the physics of the contact response. With default parameters,
-	   the algorithm will attempt to guess a good stiffness and substep size given the maximum velocity
-	   and minimum mass in the system. You can override this guess by manually adjusting the stiffness
-	   and/or substep size parameters. If the stiffness is too large for the time step, the simulation
-	   will blow up and never terminate. If too small, it may take many layers and many iterations to
-	   find a solution.
+	   The other parameters control the physics of the contact response. The coefficient of restitution CoR
+           should be strictly positive and introduces damping into the simulation. Set it to 1.0 for perfectly
+           elastic response. 
+           With default parameters for the step size and stiffness parameters, the algorithm will attempt 
+           to guess a good stiffness and substep size given the maximum velocity and minimum mass in the 
+           system. You can override this guess by manually adjusting the stiffness and/or substep size 
+           parameters. If the stiffness is too large for the time step, the simulation will blow up 
+           and never terminate. If too small, it may take many layers and many iterations to find a solution.
 	   maxRollbacks controls how many iterations the algorithm will take before giving up and returning
 	   MAXROLLBACKS_EXCEEDED. Even if the simulation does not blow up, it is possible for the algorithm
 	   to never terminate if the input contains impossible geometry (e.g. due to conflicting constraints
@@ -39,7 +41,7 @@ public:
 	*/
 
 	static int velocityFilter(const Eigen::VectorXd &qstart, Eigen::VectorXd &qend, const Eigen::Matrix3Xi &faces, const Eigen::VectorXd &masses,
-			double outerEta, double innerEta, double baseStiffness = .0001, double baseSubstepSize = 0.0001, int maxRollbacks = 1000);
+			double outerEta, double innerEta, double baseStiffness = .0001, double baseSubstepSize = 0.0001, double CoR = 0.1, int maxRollbacks = 1000);
 };
 
 #endif

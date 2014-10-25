@@ -393,6 +393,9 @@ _70:
 		double mp,omp,ee,relstp,t,zm;
 		int type,i,j,tried;
 
+		relstp = 0;
+		omp = 0;
+
 		*nz = 0;
 		tried = 0;
 		u = *uu;
@@ -472,6 +475,9 @@ _50:
 		double pv,kv,t,s;
 		double ms,mp,omp,ee;
 		int i,j;
+
+		omp = 0;
+		t = 0;
 
 		*nz = 0;
 		s = *sss;

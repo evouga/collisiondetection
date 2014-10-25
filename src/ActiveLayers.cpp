@@ -18,8 +18,8 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 	return second->nextFireTime() < first->nextFireTime();
 }
 
-ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
+ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, double CoR, bool verbose) 
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
 {
 	bp_ = new AABBBroadPhase();
 	np_ = new CTCDNarrowPhase();
@@ -70,7 +70,7 @@ void ActiveLayers::addGroups(int maxdepth)
 		double etai = layerDepth(depth);
 		double dti = baseDt_ / double(depth) / sqrt(double(depth));
 
-		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, innerEta_, ki);
+		PenaltyGroup *newgroup = new PenaltyGroup(dti, etai, innerEta_, ki, CoR_);
 		groups_.push_back(newgroup);
 		groupQueue_.push(newgroup);
 
@@ -83,6 +83,7 @@ bool ActiveLayers::step(SimulationState &s)
 	int nverts = s.q.size()/3;
 	VectorXd F(s.q.size());
 	VectorXd newq(s.q.size());
+	VectorXd newv(s.q.size());
 
 	if(!groupQueue_.empty())
 	{
@@ -92,32 +93,37 @@ bool ActiveLayers::step(SimulationState &s)
 		if(newtime < termTime_)
 		{
 			groupQueue_.pop();
-			for(int i=0; i<3*nverts; i++)
-				newq[i] = s.q[i] + (newtime-s.lastUpdateTime[i])*s.v[i];
+			for(set<int>::iterator it = group->getGroupStencil().begin(); it != group->getGroupStencil().end(); ++it)
+			{
+				int vert = *it;
+				for(int j=0; j<3; j++)
+				{
+					newq[3*vert+j] = s.q[3*vert+j] + (newtime-s.lastUpdateTime[3*vert+j])*s.v[3*vert+j];
+					newv[3*vert+j] = (newq[3*vert+j]-s.q[3*vert+j])/(newtime-s.lastUpdateTime[3*vert+j]);
+				}
+			}
 
 			F.setZero();
-			bool newtouched = group->addForce(newq, F);
+			bool newtouched = group->addForce(newq, newv, F);
 			if(newtouched && newtime < earliestTime_)
 			{
 				std::cout << newtime << " wasn't suppose to fire before " << earliestTime_ << std::endl;
 				exit(0);
 			}
 			s.v += s.minv.asDiagonal()*F;
-			for(int i=0; i<nverts; i++)
+			for(set<int>::iterator it = group->getGroupStencil().begin(); it != group->getGroupStencil().end(); ++it)
 			{
+				int vert = *it;
 				bool touched = false;
 				for(int j=0; j<3; j++)
-					if(F[3*i+j] != 0.0)
-						touched = true;
-				if(touched)
 				{
-					for(int j=0; j<3; j++)
-					{
-						s.q[3*i+j] = newq[3*i+j];
-						s.lastUpdateTime[3*i+j] = newtime;
-					}
-					history_->addHistory(i, newtime, s.q.segment<3>(3*i));
+					if(F[3*vert+j] != 0.0)
+						touched = true;
+					s.q[3*vert+j] = newq[3*vert+j];
+					s.lastUpdateTime[3*vert+j] = newtime;
 				}
+				if(touched)
+					history_->addHistory(vert, newtime, s.q.segment<3>(3*vert));
 			}
 			group->incrementTimeStep();
 			groupQueue_.push(group);

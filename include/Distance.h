@@ -2,11 +2,30 @@
 #define DISTANCE_H
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <algorithm>
 
 class Distance
 {
  public:
+  // Efficiently calculates whether or not a point p is closer to than eta distance to the plane spanned by vertices q0, q1, and q2.
+  // This method does not require any floating point divisions and so is significantly faster than computing the distance itself.
+  static bool vertexPlaneDistanceLessThan(const Eigen::Vector3d &p, 
+					    const Eigen::Vector3d &q0, const Eigen::Vector3d &q1, const Eigen::Vector3d &q2, double eta)
+  {
+	Eigen::Vector3d c = (q1-q0).cross(q2-q0);
+	return c.dot(p-q0)*c.dot(p-q0) < eta*eta*c.dot(c);
+  }
+
+  // Efficiently calculates whether or not the line spanned by vertices (p0, p1) is closer than eta distance to the line spanned by vertices (q0, q1).
+  // This method does not require any floating point divisions and so is significantly faster than computing the distance itself.
+  static bool lineLineDistanceLessThan(const Eigen::Vector3d &p0, const Eigen::Vector3d &p1,
+					  const Eigen::Vector3d &q0, const Eigen::Vector3d &q1, double eta)
+  {
+	Eigen::Vector3d c = (p1-p0).cross(q1-q0);
+	return c.dot(q0-p0)*c.dot(q0-p0) < eta*eta*c.dot(c);
+  }
+
   // Computes the vector between a point p and the closest point to p on the triangle (q0, q1, q2). Also returns the barycentric coordinates of this closest point on the triangle;
   // q0bary is the barycentric coordinate of q0, etc. (The distance from p to the triangle is the norm of this vector.)
   static Eigen::Vector3d vertexFaceDistance(const Eigen::Vector3d &p, 

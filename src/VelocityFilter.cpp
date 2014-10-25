@@ -35,7 +35,7 @@ static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3
 
 
 int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &invmasses,
-			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, int maxRollbacks)
+			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, double CoR, int maxRollbacks)
 {
 	int nverts = qstart.size()/3;
 	assert(qend.size() == 3*nverts);
@@ -67,7 +67,7 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 
 	std::cout << "For outer layer thickness " << outerEta << " and max inverse mass " << maxmass << ", using base timestep " << dt << " and stiffness " << k << std::endl;
 
-	ActiveLayers al(outerEta, innerEta, dt, k, 1.0, true);
+	ActiveLayers al(outerEta, innerEta, dt, k, 1.0, CoR, true);
 	Mesh m;
 	m.vertices = qstart;
 	m.faces = faces;	
