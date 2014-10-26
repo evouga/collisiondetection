@@ -94,6 +94,42 @@ int main(int argc, char *argv[])
 
 	std::cout << "Will inflate using " << numcoarse << " fine meshes" << std::endl;
 
+	std::cout << "Checking initial fine mesh" << std::endl;
+	VectorXd qcoarse;
+	Matrix3Xi fcoarse;
+	loadMesh(argv[2], qcoarse, fcoarse);
+	std::cout << "Loaded fine mesh with " << qcoarse.size()/3 << " vertices and " << fcoarse.cols() << " faces" << std::endl;
+	VectorXd q(qfine.size() + qcoarse.size());
+	Matrix3Xi f;
+	f.resize(3, ffine.cols() + fcoarse.cols());
+	for(int i=0; i<(int)qfine.size(); i++)
+		q[i] = qfine[i];
+	for(int i=0; i<qcoarse.size(); i++)
+		q[qfine.size()+i] = qcoarse[i];
+	for(int i=0; i<(int)ffine.cols(); i++)
+		f.col(i) = ffine.col(i);
+	for(int i=0; i<(int)fcoarse.cols(); i++)
+		for(int j=0; j<3; j++)
+			f.coeffRef(j, ffine.cols()+i) = fcoarse.coeff(j,i) + numfineverts;
+
+	VectorXd invmasses(qfine.size() + qcoarse.size());
+	for(int i=0; i<(int)qfine.size(); i++)
+		invmasses[i] = 1.0;
+	for(int i=0; i<(int)qcoarse.size(); i++)
+		invmasses[qfine.size()+i] = 0;		
+
+	double distance = Distance::meshSelfDistance(q, f);
+	while(distance < 1e-6)
+	{
+		std::cout << "Distance is " << distance << ". Inflating..." << std::endl;
+		VectorXd qnew = q;
+		VelocityFilter::velocityFilter(q, qnew, f, invmasses, 2.0*distance, 0.5*distance);
+		q = qnew;
+		distance = Distance::meshSelfDistance(q, f);
+	}
+	for(int i=0; i<(int)qfine.size(); i++)
+		qfine[i] = q[i];
+
 	for(int iter=0; iter<numcoarse-1; iter++)
 	{
 		std::cout << "Now processing " << argv[2+iter] << " -> " << argv[3+iter] << std::endl;
@@ -110,9 +146,9 @@ int main(int argc, char *argv[])
 		VectorXd q1(qfine.size() + qcoarse1.size());
 		VectorXd q2(qfine.size() + qcoarse2.size());
 		Matrix3Xi f1;
-		f1.resize(3, ffine.size() + fcoarse1.size());
+		f1.resize(3, ffine.cols() + fcoarse1.cols());
 		Matrix3Xi f2;
-		f2.resize(3, ffine.size() + fcoarse2.size());
+		f2.resize(3, ffine.cols() + fcoarse2.cols());
 		for(int i=0; i<(int)qfine.size(); i++)
 		{
 			q1[i] = qfine[i];
@@ -130,12 +166,12 @@ int main(int argc, char *argv[])
 		for(int i=0; i<(int)fcoarse1.cols(); i++)
 		{
 			for(int j=0; j<3; j++)
-				f1.coeffRef(j, ffine.size() + i) = fcoarse1.coeff(j, i) + numfineverts;
+				f1.coeffRef(j, ffine.cols() + i) = fcoarse1.coeff(j, i) + numfineverts;
 		}
 		for(int i=0; i<(int)fcoarse2.cols(); i++)
 		{
 			for(int j=0; j<3; j++)
-				f2.coeffRef(j, ffine.size() + i) = fcoarse2.coeff(j, i) + numfineverts;
+				f2.coeffRef(j, ffine.cols() + i) = fcoarse2.coeff(j, i) + numfineverts;
 		}
 		VectorXd invmasses(qfine.size() + qcoarse1.size());
 		for(int i=0; i<(int)qfine.size(); i++)
@@ -143,7 +179,7 @@ int main(int argc, char *argv[])
 		for(int i=0; i<(int)qcoarse1.size(); i++)
 			invmasses[qfine.size()+i] = 0;		
 
-		std::cout << VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 1e-4, 1e-8) << std::endl;
+		std::cout << VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 1e-9, 1e-10) << std::endl;
 		for(int i=0; i<(int)qfine.size(); i++)
 			qfine[i] = q2[i];
 	

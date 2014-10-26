@@ -32,7 +32,6 @@ public:
 
 	bool runOneIteration(const Mesh &m, SimulationState &initialState);
 	bool collisionDetection(const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, double &earliestTime);
-	double closestDistance(const Eigen::VectorXd &q, const Mesh &m);
 
 private:
 	ActiveLayers(const ActiveLayers &other);

@@ -7,6 +7,7 @@
 #include <set>
 #include <fstream>
 #include <sstream>
+#include "Distance.h"
 
 using namespace Eigen;
 using namespace std;
@@ -72,7 +73,7 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 	m.vertices = qstart;
 	m.faces = faces;	
 
-	double closest = al.closestDistance(qstart, m);
+	double closest = Distance::meshSelfDistance(qstart, faces);
 
 	std::cout << "Closest primitive pair is distance " << closest << " apart at start" << std::endl;
 	

@@ -172,6 +172,11 @@ class Distance
   return c2-c1;
   }
 
+  // Computes the shortest distance between a triangle mesh and itself, i.e. the shortest distance between a vertex and a face that does not contain taht vertex, or of an edge and another edge that
+  // does not share a vertex. The mesh has verts1.size()/3 vertices, stored as consecutive triplets in the vector verts, and faces stored as vertex indices in the columns of faces. This method assumes
+  // that each vertex is part of at least one triangle.
+  static double meshSelfDistance(const Eigen::VectorXd &verts, const Eigen::Matrix3Xi &faces);
+
  private:
   static double clamp(double u)
   {

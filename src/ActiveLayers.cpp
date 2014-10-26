@@ -179,60 +179,6 @@ double ActiveLayers::EEStencilThickness(EdgeEdgeStencil stencil)
 	return layerDepth(1);
 }
 
-double ActiveLayers::closestDistance(const VectorXd &q, const Mesh &m)
-{
-	int nverts = m.vertices.size()/3;
-	int nfaces = m.faces.cols();
-	double closest = std::numeric_limits<double>::infinity();
-
-	for(int i=0; i<nverts; i++)
-	{
-		for(int j=0; j<nfaces; j++)
-		{
-			if(m.vertexOfFace(i,j))
-				continue;
-			for(int k=0; k<3; k++)
-			{
-				double dist = (q.segment<3>(3*i)-q.segment<3>(3*m.faces.coeff(k,j))).squaredNorm();
-				if(dist < closest)
-					closest = dist;
-			}
-		}
-	}
-	closest = sqrt(closest);
-
-	if(verbose_)
-		std::cout << "Closest distance conservative bound: " << closest << std::endl;;
-
-	History h(q);
-	h.finishHistory(q);
-
-	set<VertexFaceStencil> vfs;
-	set<EdgeEdgeStencil> ees;
-
-	bp_->findCollisionCandidates(h, m, closest, vfs, ees);	
-
-	if(verbose_)
-		std::cout << "Checking " << vfs.size() << " vertex-face and " << ees.size() << " edge-edge stencils" << std::endl;
-
-	for(set<VertexFaceStencil>::iterator it = vfs.begin(); it != vfs.end(); ++it)
-	{
-		double t;
-		double dist = Distance::vertexFaceDistance(q.segment<3>(3*it->p), q.segment<3>(3*it->q0), q.segment<3>(3*it->q1), q.segment<3>(3*it->q2), t, t, t).norm();
-		if(dist < closest)
-			closest = dist;
-	}
-	for(set<EdgeEdgeStencil>::iterator it = ees.begin(); it != ees.end(); ++it)
-	{
-		double t;
-		double dist = Distance::edgeEdgeDistance(q.segment<3>(3*it->p0), q.segment<3>(3*it->p1), q.segment<3>(3*it->q0), q.segment<3>(3*it->q1), t, t, t, t).norm();
-		if(dist < closest)
-			closest = dist;
-	}
-
-	return closest;
-}
-
 bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, double &earliestTime)
 {
 	vfsToAdd.clear();
