@@ -73,7 +73,12 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 	m.vertices = qstart;
 	m.faces = faces;	
 
-	double closest = Distance::meshSelfDistance(qstart, faces);
+	set<int> fixedVerts;
+	for(int i=0; i<invmasses.size(); i++)
+		if(invmasses[i] == 0.0)
+			fixedVerts.insert(i/3);
+
+	double closest = Distance::meshSelfDistance(qstart, faces, fixedVerts);
 
 	std::cout << "Closest primitive pair is distance " << closest << " apart at start" << std::endl;
 	
@@ -99,7 +104,7 @@ int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const
 		}
 		stringstream ss;
 		ss << "iter_" << iter << ".obj";
-		writeMesh(ss.str().c_str(), s.q, m.faces);
+		//writeMesh(ss.str().c_str(), s.q, m.faces);
 	}
 	return MAXROLLBACKS_EXCEEDED;
 }

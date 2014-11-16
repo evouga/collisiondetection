@@ -26,7 +26,7 @@ class History
 public:
 	History(const Eigen::VectorXd &qstart);
 	
-	void addHistory(int vert, double time, const Eigen::Vector3d &pos);
+	void addHistory(int vert, double time, const Eigen::Vector3d &pos, const History *oldhistory, bool checkOldHistory);
 	void finishHistory(const Eigen::VectorXd &qend);
 
 	int countHistoryEntries();

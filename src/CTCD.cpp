@@ -232,7 +232,7 @@ void CTCD::distancePoly3D(const Vector3d &x10,
                           const Vector3d &v20,
                           const Vector3d &v30,
                           double minDSquared,
-                          vector<TimeInterval> &result)
+                          vector<TimeInterval> &result, bool print)
 {
     double A = v10.dot(v20.cross(v30));
     double B = x10.dot(v20.cross(v30)) + v10.dot(x20.cross(v30)) + v10.dot(v20.cross(x30));
@@ -250,6 +250,9 @@ void CTCD::distancePoly3D(const Vector3d &x10,
     op[4] = 2 * B * D + C * C - (2 * G.dot(E) + F.dot(F)) * minDSquared;
     op[5] = 2 * C * D - 2 * F.dot(E) * minDSquared;
     op[6] = D * D - E.dot(E) * minDSquared;
+    if(print)
+	for(int i=0; i<=6; i++)
+		std::cout << op[i] << " " << std::endl;
     findIntervals(op, 6, result, false);
 }
 
@@ -262,7 +265,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
                         const Eigen::Vector3d &q1end,
                         const Eigen::Vector3d &p1end,
                         double eta,
-                        double &t)
+                        double &t, bool print)
 {
     double minD = eta * eta;
 
@@ -282,7 +285,9 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
     Vector3d v20 = vp0 - vq0;
     Vector3d v30 = vp1 - vq1;
 
-    distancePoly3D(x10, x20, x30, v10, v20, v30, minD, rawcoplane);
+    //std::cout << "Inside EE " << q0start.transpose() << " " << p0start.transpose() << " " << q1start.transpose() << " " << p1start.transpose() << " " << q0end.transpose() << " " << p0end.transpose() << " " << q1end.transpose() << " " << p1end.transpose() << std::endl;
+
+    distancePoly3D(x10, x20, x30, v10, v20, v30, minD, rawcoplane, print);
 
     // check for parallel edges
     std::vector<TimeInterval> coplane;
@@ -296,8 +301,6 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
 
         if (x10.cross(x20).norm() < 1e-8)
         {
-            // TODO
-            // handle parallel edges
 	    parallel.push_back(rawcoplane[i]);
         }
         else
@@ -305,6 +308,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
             coplane.push_back(rawcoplane[i]);
 	}
     }
+
     if(coplane.empty())
         return false;
 
@@ -392,6 +396,13 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
             }
         }
     }
+
+    // handle parallel edges
+    for(int i=0; i< (int)parallel.size(); i++)
+    {
+
+    }
+
 
     if(col)
     {

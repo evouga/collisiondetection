@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	std::cout << "Checking initial fine mesh" << std::endl;
 	VectorXd qcoarse;
 	Matrix3Xi fcoarse;
-	loadMesh(argv[2], qcoarse, fcoarse);
+	loadMesh(argv[1+numcoarse], qcoarse, fcoarse);
 	std::cout << "Loaded fine mesh with " << qcoarse.size()/3 << " vertices and " << fcoarse.cols() << " faces" << std::endl;
 	VectorXd q(qfine.size() + qcoarse.size());
 	Matrix3Xi f;
@@ -116,27 +116,31 @@ int main(int argc, char *argv[])
 	for(int i=0; i<(int)qfine.size(); i++)
 		invmasses[i] = 1.0;
 	for(int i=0; i<(int)qcoarse.size(); i++)
-		invmasses[qfine.size()+i] = 0;		
+		invmasses[qfine.size()+i] = 0;	
 
-	double distance = Distance::meshSelfDistance(q, f);
-	while(distance < 1e-6)
+	set<int> fixedVerts;
+	for(int i=0; i<(int)qcoarse.size()/3; i++)
+		fixedVerts.insert(qfine.size()/3 + i);
+
+	double distance = Distance::meshSelfDistance(q, f, fixedVerts);
+	while(distance < 1e-4)
 	{
 		std::cout << "Distance is " << distance << ". Inflating..." << std::endl;
 		VectorXd qnew = q;
 		VelocityFilter::velocityFilter(q, qnew, f, invmasses, 2.0*distance, 0.5*distance);
 		q = qnew;
-		distance = Distance::meshSelfDistance(q, f);
+		distance = Distance::meshSelfDistance(q, f, fixedVerts);
 	}
 	for(int i=0; i<(int)qfine.size(); i++)
 		qfine[i] = q[i];
 
 	for(int iter=0; iter<numcoarse-1; iter++)
 	{
-		std::cout << "Now processing " << argv[2+iter] << " -> " << argv[3+iter] << std::endl;
+		std::cout << "Now processing " << argv[1+numcoarse-iter] << " -> " << argv[numcoarse-iter] << std::endl;
 		VectorXd qcoarse1, qcoarse2;
 		Matrix3Xi fcoarse1, fcoarse2;
-		loadMesh(argv[2+iter], qcoarse1, fcoarse1);
-		loadMesh(argv[3+iter], qcoarse2, fcoarse2);
+		loadMesh(argv[1+numcoarse-iter], qcoarse1, fcoarse1);
+		loadMesh(argv[numcoarse-iter], qcoarse2, fcoarse2);
 		if(qcoarse1.size() != qcoarse2.size() || fcoarse1.size() != fcoarse2.size())
 		{
 			std::cout << "Dimensions don't match!" << std::endl;
@@ -179,7 +183,7 @@ int main(int argc, char *argv[])
 		for(int i=0; i<(int)qcoarse1.size(); i++)
 			invmasses[qfine.size()+i] = 0;		
 
-		std::cout << VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 1e-9, 1e-10) << std::endl;
+		VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 1e-4, 1e-6);
 		for(int i=0; i<(int)qfine.size(); i++)
 			qfine[i] = q2[i];
 	

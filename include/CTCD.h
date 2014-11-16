@@ -41,7 +41,7 @@ public:
             const Eigen::Vector3d &p0end,
             const Eigen::Vector3d &q1end,
             const Eigen::Vector3d &p1end, double eta,
-            double &t);
+            double &t, bool print=false);
 
     // Looks for collisions between the vertex q0start and the face (q1start, q2start, q3start) as they move
     // towards q0end and (q1end, q2end, q3end). Returns true if the vertex and face ever come closer than a distance
@@ -105,7 +105,7 @@ private:
                                const Eigen::Vector3d &v20,
                                const Eigen::Vector3d &v30,
                                double minDSquared,
-                               std::vector<TimeInterval> &result);
+                               std::vector<TimeInterval> &result, bool print=false);
 
     static void barycentricPoly3D(const Eigen::Vector3d &x10,
                                   const Eigen::Vector3d &x20,

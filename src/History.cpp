@@ -18,12 +18,31 @@ History::History(const VectorXd &qstart)
 	}
 }
 
-void History::addHistory(int vert, double time, const Eigen::Vector3d &pos)
+void History::addHistory(int vert, double time, const Eigen::Vector3d &pos, const History *oldhistory, bool checkOldHistory)
 {
 	HistoryEntry newentry;
 	newentry.time = time;
 	newentry.pos = pos;
 	history_[vert].push_back(newentry);
+	if(checkOldHistory)
+	{
+		int entry = history_[vert].size()  - 1;
+		if((int)oldhistory->history_[vert].size() <= entry)
+		{
+			std::cout << "Not enough history entries" << std::endl;
+			exit(0);
+		}
+		if(oldhistory->history_[vert][entry].time != time)
+		{
+			std::cout << "Histories diverged, old time " << oldhistory->history_[vert][entry].time << ", new time " << time << std::endl;
+			exit(0);
+		}
+		if(oldhistory->history_[vert][entry].pos != pos)
+		{
+			std::cout << "Histories diverged, same time " << time << " different positions" << std::endl;
+			exit(0);
+		}
+	}
 }
 
 void History::finishHistory(const Eigen::VectorXd &qend)

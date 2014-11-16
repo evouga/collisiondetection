@@ -18,7 +18,7 @@ public:
 	void addVFStencil(VertexFaceStencil stencil);	
 	void addEEStencil(EdgeEdgeStencil stencil);
 
-	bool addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F);
+	bool addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F, bool print);
 	void incrementTimeStep();
 	double nextFireTime() const;
 	void rollback();

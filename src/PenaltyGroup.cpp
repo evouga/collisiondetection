@@ -31,7 +31,7 @@ void PenaltyGroup::addEEStencil(EdgeEdgeStencil eestencil)
 	groupStencil_.insert(eestencil.q1);
 }
 
-bool PenaltyGroup::addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F)
+bool PenaltyGroup::addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F, bool print)
 {
 	VectorXd groupforce(q.size());
 	groupforce.setZero();
@@ -43,7 +43,7 @@ bool PenaltyGroup::addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, 
 	}
 	for(vector<EdgeEdgeStencil>::iterator it = eestencils_.begin(); it != eestencils_.end(); ++it)		
 	{
-		bool fired = EdgeEdgePenaltyPotential::addForce(q, v, groupforce, *it, outerEta_, innerEta_, stiffness_, CoR_);
+		bool fired = EdgeEdgePenaltyPotential::addForce(q, v, groupforce, *it, outerEta_, innerEta_, stiffness_, CoR_, print);
 		newused |= (fired && it->isnew);
 	}
 

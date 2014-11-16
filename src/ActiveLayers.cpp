@@ -19,7 +19,7 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 }
 
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, double CoR, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), verbose_(verbose), earliestTime_(0)
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), oldhistory_(NULL), verbose_(verbose), earliestTime_(0)
 {
 	bp_ = new AABBBroadPhase();
 	np_ = new CTCDNarrowPhase();
@@ -31,6 +31,7 @@ ActiveLayers::~ActiveLayers()
 		delete *it;
 	
 	delete history_;
+	delete oldhistory_;
 	delete bp_;
 	delete np_;
 }
@@ -106,10 +107,11 @@ bool ActiveLayers::step(SimulationState &s)
 			}
 
 			F.setZero();
-			bool newtouched = group->addForce(newq, newv, F);
+			bool print = newtime > 0.979750 && newtime < 0.979752;
+			bool newtouched = group->addForce(newq, newv, F, print);
 			if(newtouched && newtime < earliestTime_)
 			{
-				std::cout << newtime << " wasn't suppose to fire before " << earliestTime_ << std::endl;
+				std::cout << newtime << ", thickness " << group->getOuterEta() << " wasn't suppose to fire before " << earliestTime_ << std::endl;
 				exit(0);
 			}
 
@@ -121,12 +123,19 @@ bool ActiveLayers::step(SimulationState &s)
 				{
 					if(F[3*vert+j] != 0.0)
 						touched = true;
-					s.v[3*vert+j] += s.minv[3*vert+j]*F[3*vert+j];
-					s.q[3*vert+j] = newq[3*vert+j];
-					s.lastUpdateTime[3*vert+j] = newtime;
 				}
 				if(touched)
-					history_->addHistory(vert, newtime, s.q.segment<3>(3*vert));
+				{
+					for(int j=0; j<3; j++)
+					{
+						s.v[3*vert+j] += s.minv[3*vert+j]*F[3*vert+j];
+						s.q[3*vert+j] = newq[3*vert+j];
+						s.lastUpdateTime[3*vert+j] = newtime;
+					}
+			
+					history_->addHistory(vert, newtime, s.q.segment<3>(3*vert), oldhistory_, newtime < earliestTime_);
+				}
+
 			}
 			group->incrementTimeStep();
 			groupQueue_.push(group);
@@ -140,6 +149,13 @@ bool ActiveLayers::step(SimulationState &s)
 		s.lastUpdateTime[i] = termTime_;
 	}
 	history_->finishHistory(s.q);
+
+
+	for(int i=0; i<history_->getVertexHistory(2243).size(); i++)
+	{
+		std::cout << "history at " << history_->getVertexHistory(2243)[i].time << std::endl;
+	}
+
 	return true;
 }
 
@@ -179,13 +195,13 @@ double ActiveLayers::EEStencilThickness(EdgeEdgeStencil stencil)
 	return layerDepth(1);
 }
 
-bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, double &earliestTime)
+bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, const set<int> &fixedVerts, double &earliestTime)
 {
 	vfsToAdd.clear();
 	eesToAdd.clear();
 	earliestTime = 1.0;
 	
-	bp_->findCollisionCandidates(*history_, m, outerEta_, vfsToAdd, eesToAdd);
+	bp_->findCollisionCandidates(*history_, m, outerEta_, vfsToAdd, eesToAdd, fixedVerts);
 	if(verbose_)
 		std::cout << "Broad phase found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge candidates" << std::endl;
 	set<pair<VertexFaceStencil, double> > etavfs;
@@ -218,8 +234,22 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 		std::cout << std::endl;
 	}
 
-	delete history_;
+	delete oldhistory_;
+	oldhistory_ = history_;
 	history_ = new History(s.q);
+
+	VectorXd endq = s.q + s.v;
+
+	double testt = 1.0;
+	CTCD::edgeEdgeCTCD(s.q.segment<3>(3*1205),
+            s.q.segment<3>(3*2432),
+            s.q.segment<3>(3*7793),
+            s.q.segment<3>(3*12576),
+            endq.segment<3>(3*1205),
+	    endq.segment<3>(3*2432),
+            endq.segment<3>(3*7793),
+            endq.segment<3>(3*12576), 0.0001, testt, true);
+	std::cout << "detected time " << testt << std::endl;
 
 	while(!step(s));
 
@@ -229,8 +259,15 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 	set<VertexFaceStencil> vfsToAdd;
 	set<EdgeEdgeStencil> eesToAdd;
 
+	set<int> fixedVerts;
+	for(int i=0; i<(int)s.minv.size(); i++)
+	{
+		if(s.minv[i] == 0.0)
+			fixedVerts.insert(i/3);
+	}
+
 	double t = 0;
-	bool collisions = collisionDetection(m, vfsToAdd, eesToAdd, t);
+	bool collisions = collisionDetection(m, vfsToAdd, eesToAdd, fixedVerts, t);
 	if(verbose_)
 		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions, earliest at t=" << t << std::endl;
 

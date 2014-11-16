@@ -16,7 +16,7 @@ class VertexFacePenaltyPotential
 class EdgeEdgePenaltyPotential
 {
  public:
-  static bool addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F, EdgeEdgeStencil stencil, double outerEta, double innerEta, double stiffness, double CoR);
+  static bool addForce(const Eigen::VectorXd &q, const Eigen::VectorXd &v, Eigen::VectorXd &F, EdgeEdgeStencil stencil, double outerEta, double innerEta, double stiffness, double CoR, bool print);
 };
 
 

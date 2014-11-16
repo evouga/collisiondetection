@@ -9,7 +9,7 @@
 using namespace Eigen;
 using namespace std;
 
-double Distance::meshSelfDistance(const Eigen::VectorXd &verts, const Eigen::Matrix3Xi &faces)
+double Distance::meshSelfDistance(const Eigen::VectorXd &verts, const Eigen::Matrix3Xi &faces, const set<int> &fixedVerts)
 {
 	int nverts = verts.size()/3;
 	int nfaces = faces.cols();
@@ -34,8 +34,6 @@ double Distance::meshSelfDistance(const Eigen::VectorXd &verts, const Eigen::Mat
 	}
 	closest = sqrt(closest);
 
-	std::cout << "Closest distance conservative bound: " << closest << std::endl;;
-
 	History h(m.vertices);
 	h.finishHistory(m.vertices);
 
@@ -44,9 +42,11 @@ double Distance::meshSelfDistance(const Eigen::VectorXd &verts, const Eigen::Mat
 
 	AABBBroadPhase bp;
 
-	bp.findCollisionCandidates(h, m, closest, vfs, ees);	
+	bp.findCollisionCandidates(h, m, closest, vfs, ees, fixedVerts);	
 
 	std::cout << "Checking " << vfs.size() << " vertex-face and " << ees.size() << " edge-edge stencils" << std::endl;
+
+	closest = std::numeric_limits<double>::infinity();
 
 	for(set<VertexFaceStencil>::iterator it = vfs.begin(); it != vfs.end(); ++it)
 	{

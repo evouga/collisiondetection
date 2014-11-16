@@ -6,12 +6,12 @@
 
 using namespace std;
 
-void AABBBroadPhase::findCollisionCandidates(const History &h, const Mesh &m, double outerEta, set<VertexFaceStencil> &vfs, set<EdgeEdgeStencil> &ees)
+void AABBBroadPhase::findCollisionCandidates(const History &h, const Mesh &m, double outerEta, set<VertexFaceStencil> &vfs, set<EdgeEdgeStencil> &ees, const std::set<int> &fixedVerts)
 {
 	vfs.clear();
 	ees.clear();
 	AABBNode *tree = buildAABBTree(h, m, outerEta);
-	intersect(tree, tree, m, vfs, ees);
+	intersect(tree, tree, m, vfs, ees, fixedVerts);
 	delete tree;
 }
 
@@ -94,7 +94,7 @@ AABBNode *AABBBroadPhase::buildAABBInterior(vector<AABBNode *> &children)
 	return node;
 }
 
-void AABBBroadPhase::intersect(AABBNode *left, AABBNode *right, const Mesh &m, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees)
+void AABBBroadPhase::intersect(AABBNode *left, AABBNode *right, const Mesh &m, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees, const std::set<int> &fixedVerts)
 {
 	for(int axis=0; axis<3; axis++)
 	{
@@ -105,14 +105,14 @@ void AABBBroadPhase::intersect(AABBNode *left, AABBNode *right, const Mesh &m, s
 	if(!left->isLeaf())
 	{
 		AABBInteriorNode *ileft = (AABBInteriorNode *)left;
-		intersect(ileft->left, right, m, vfs, ees);
-		intersect(ileft->right, right, m, vfs, ees);	
+		intersect(ileft->left, right, m, vfs, ees, fixedVerts);
+		intersect(ileft->right, right, m, vfs, ees, fixedVerts);	
 	}
 	else if(!right->isLeaf())
 	{
 		AABBInteriorNode *iright = (AABBInteriorNode *)right;
-		intersect(left, iright->left, m, vfs, ees);
-		intersect(left, iright->right, m, vfs, ees);
+		intersect(left, iright->left, m, vfs, ees, fixedVerts);
+		intersect(left, iright->right, m, vfs, ees, fixedVerts);
 	}
 	else
 	{
@@ -123,12 +123,29 @@ void AABBBroadPhase::intersect(AABBNode *left, AABBNode *right, const Mesh &m, s
 
 		// 6 vertex-face and 9 edge-edge
 		for(int i=0; i<3; i++)
-		{						
-			vfs.insert(VertexFaceStencil(m.faces.coeff(i, lleft->face), m.faces.coeff(0, lright->face), m.faces.coeff(1, lright->face), m.faces.coeff(2, lright->face)));
-			vfs.insert(VertexFaceStencil(m.faces.coeff(i, lright->face), m.faces.coeff(0, lleft->face), m.faces.coeff(1, lleft->face), m.faces.coeff(2, lleft->face)));
+		{
+			bool alllfixed = true;
+			bool allrfixed = true;
+			alllfixed = alllfixed && fixedVerts.count(m.faces.coeff(i, lleft->face));
+			allrfixed = allrfixed && fixedVerts.count(m.faces.coeff(i, lright->face));
 			for(int j=0; j<3; j++)
 			{
-				ees.insert(EdgeEdgeStencil(m.faces.coeff(i, lleft->face), m.faces.coeff((i+1)%3, lleft->face), m.faces.coeff(j, lright->face), m.faces.coeff((j+1)%3, lright->face)));
+				alllfixed = alllfixed && fixedVerts.count(m.faces.coeff(j, lright->face));
+				allrfixed = allrfixed && fixedVerts.count(m.faces.coeff(j, lleft->face));
+			}
+			if(!alllfixed)
+				vfs.insert(VertexFaceStencil(m.faces.coeff(i, lleft->face), m.faces.coeff(0, lright->face), m.faces.coeff(1, lright->face), m.faces.coeff(2, lright->face)));
+			if(!allrfixed)
+				vfs.insert(VertexFaceStencil(m.faces.coeff(i, lright->face), m.faces.coeff(0, lleft->face), m.faces.coeff(1, lleft->face), m.faces.coeff(2, lleft->face)));
+			for(int j=0; j<3; j++)
+			{
+				bool allefixed = true;
+				allefixed = allefixed && fixedVerts.count(m.faces.coeff(i, lleft->face));
+				allefixed = allefixed && fixedVerts.count(m.faces.coeff((i+1)%3, lleft->face));
+				allefixed = allefixed && fixedVerts.count(m.faces.coeff(j, lright->face));
+				allefixed = allefixed && fixedVerts.count(m.faces.coeff((j+1)%3, lright->face));
+				if(!allefixed)
+					ees.insert(EdgeEdgeStencil(m.faces.coeff(i, lleft->face), m.faces.coeff((i+1)%3, lleft->face), m.faces.coeff(j, lright->face), m.faces.coeff((j+1)%3, lright->face)));
 			}
 		}		
 	}

@@ -10,7 +10,7 @@ class Mesh;
 class BroadPhase
 {
 public:
-	virtual void findCollisionCandidates(const History &h, const Mesh &m, double outerEta, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees) = 0;
+	virtual void findCollisionCandidates(const History &h, const Mesh &m, double outerEta, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees, const std::set<int> &fixedVerts) = 0;
 	virtual ~BroadPhase() {}
 };
 
@@ -25,7 +25,7 @@ public:
 class TrivialBroadPhase : public BroadPhase
 {
 public:
-	virtual void findCollisionCandidates(const History &h, const Mesh &m, double outerEta, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees);
+	virtual void findCollisionCandidates(const History &h, const Mesh &m, double outerEta, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees, const std::set<int> &fixedVerts);
 };
 
 class CTCDNarrowPhase : public NarrowPhase
