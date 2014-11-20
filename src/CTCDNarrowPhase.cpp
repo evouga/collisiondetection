@@ -101,20 +101,10 @@ bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta
 		double tinterval = next->time - it->time;
 
 		double t;
-		bool print = false;
-		if(ees.p0 == 1205 && ees.p1 == 2432 && ees.q0 == 7793 && ees.q1 == 12576)
-		{
-			std::cout << "Checking times " << it->time << " to " << next->time << " eta " << eta << std::endl;
-
-			print = true;
-		}
 		if(CTCD::edgeEdgeCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 					next->pos[0], next->pos[1], next->pos[2], next->pos[3],
-					      eta, t, print))
-		{
-			
-			if(ees.p0 == 1205 && ees.p1 == 2432 && ees.q0 == 7793 && ees.q1 == 12576)				
-				std::cout << "Detected " << ees.p0 << " " << ees.p1 << " " << ees.q0 << " " << ees.q1 << " at " << it->time + t*tinterval << std::endl;
+					      eta, t))
+		{			
 			earliestTime = min(earliestTime, it->time + t*tinterval);				
 			found = true;
 		}

@@ -12,29 +12,6 @@
 using namespace Eigen;
 using namespace std;
 
-
-static void writeMesh(const char *filename, const VectorXd &verts, const Matrix3Xi &faces)
-{
-	ofstream ofs(filename);
-
-	for(int i=0; i<verts.size()/3; i++)
-	{
-		ofs << "v ";
-		for(int j=0; j<3; j++)
-			ofs << verts[3*i+j] << " ";
-		ofs << endl;
-	}
-
-	for(int i=0; i<faces.cols(); i++)
-	{
-		ofs << "f ";
-		for(int j=0; j<3; j++)
-			ofs << faces.coeff(j, i)+1 << " ";
-		ofs << endl;
-	}
-}
-
-
 int VelocityFilter::velocityFilter(const VectorXd &qstart, VectorXd &qend, const Matrix3Xi &faces, const VectorXd &invmasses,
 			double outerEta, double innerEta, double baseStiffness, double baseSubstepSize, double CoR, int maxRollbacks)
 {

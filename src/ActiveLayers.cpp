@@ -107,8 +107,7 @@ bool ActiveLayers::step(SimulationState &s)
 			}
 
 			F.setZero();
-			bool print = newtime > 0.979750 && newtime < 0.979752;
-			bool newtouched = group->addForce(newq, newv, F, print);
+			bool newtouched = group->addForce(newq, newv, F);
 			if(newtouched && newtime < earliestTime_)
 			{
 				std::cout << newtime << ", thickness " << group->getOuterEta() << " wasn't suppose to fire before " << earliestTime_ << std::endl;
@@ -149,12 +148,6 @@ bool ActiveLayers::step(SimulationState &s)
 		s.lastUpdateTime[i] = termTime_;
 	}
 	history_->finishHistory(s.q);
-
-
-	for(int i=0; i<history_->getVertexHistory(2243).size(); i++)
-	{
-		std::cout << "history at " << history_->getVertexHistory(2243)[i].time << std::endl;
-	}
 
 	return true;
 }
@@ -237,19 +230,6 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 	delete oldhistory_;
 	oldhistory_ = history_;
 	history_ = new History(s.q);
-
-	VectorXd endq = s.q + s.v;
-
-	double testt = 1.0;
-	CTCD::edgeEdgeCTCD(s.q.segment<3>(3*1205),
-            s.q.segment<3>(3*2432),
-            s.q.segment<3>(3*7793),
-            s.q.segment<3>(3*12576),
-            endq.segment<3>(3*1205),
-	    endq.segment<3>(3*2432),
-            endq.segment<3>(3*7793),
-            endq.segment<3>(3*12576), 0.0001, testt, true);
-	std::cout << "detected time " << testt << std::endl;
 
 	while(!step(s));
 
