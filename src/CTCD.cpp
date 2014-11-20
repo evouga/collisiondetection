@@ -115,6 +115,14 @@ void CTCD::findIntervals(double *op, int n, vector<TimeInterval> & intervals, bo
     // We don't care one bit about these imaginary roots
     double zeroi[6];
 
+    // normalize
+    double maxval = 0;
+    for(int i=0; i<=n; i++)
+	maxval = std::max(maxval, fabs(op[i]));
+    if(maxval != 0)    
+	for(int i=0; i<=n; i++)
+		op[i] /= maxval;
+
     for (int i = 0; i < n; i++)
     {
         if (op[i] == 0)
@@ -179,7 +187,7 @@ void CTCD::barycentricPoly3D(const Vector3d &x10,
                              const Vector3d &v10,
                              const Vector3d &v20,
                              const Vector3d &v30,
-                             vector<TimeInterval> &result)
+                             vector<TimeInterval> &result, bool print)
 {
     // alpha > 0
     double A = x10.dot(x10);
@@ -205,6 +213,13 @@ void CTCD::barycentricPoly3D(const Vector3d &x10,
     op[2] = F * J + D * L + E * K - C * G - A * I - B * H;
     op[3] = D * K + E * J - A * H - B * G;
     op[4] = D * J - A * G;
+
+    if(print)
+	{
+	std::cout << "bary" << std::endl;
+	for(int i=0; i<=4; i++)
+		std::cout << op[i] << std::endl;
+	}
 
     findIntervals(op, 4, result, true);
 }
@@ -309,6 +324,9 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
 	}
     }
 
+    if(print)
+	std::cout << parallel.size() << " parallel intervals " << std::endl;
+
     if(coplane.empty())
         return false;
 
@@ -318,7 +336,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
     v20 = vp0 - vq0;
     x30 = q0start - q1start;
     v30 = vq0 - vq1;
-    barycentricPoly3D(x10, x20, x30, v10, v20, v30, a0);
+    barycentricPoly3D(x10, x20, x30, v10, v20, v30, a0, print);
     if(a0.empty())
         return false;
 
@@ -326,7 +344,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
     v20 = vq0 - vp0;
     x30 = p0start - q1start;
     v30 = vp0 - vq1;
-    barycentricPoly3D(x10, x20, x30, v10, v20, v30, a1);
+    barycentricPoly3D(x10, x20, x30, v10, v20, v30, a1, print);
     if(a1.empty())
         return false;
 
@@ -336,7 +354,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
     v20 = vp1 - vq1;
     x30 = q1start - q0start;
     v30 = vq1 - vq0;
-    barycentricPoly3D(x10, x20, x30, v10, v20, v30, b0);
+    barycentricPoly3D(x10, x20, x30, v10, v20, v30, b0, print);
     if(b0.empty())
         return false;
 
@@ -347,7 +365,7 @@ bool CTCD::edgeEdgeCTCD(const Eigen::Vector3d &q0start,
     x30 = p1start - q0start;
     v30 = vp1 - vq0;
 
-    barycentricPoly3D(x10, x20, x30, v10, v20, v30, b1);
+    barycentricPoly3D(x10, x20, x30, v10, v20, v30, b1, print);
     if(b1.empty())
         return false;
 

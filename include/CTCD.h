@@ -113,7 +113,7 @@ private:
                                   const Eigen::Vector3d &v10,
                                   const Eigen::Vector3d &v20,
                                   const Eigen::Vector3d &v30,
-                                  std::vector<TimeInterval> &result);
+                                  std::vector<TimeInterval> &result, bool print=false);
 
     static void planePoly3D(const Eigen::Vector3d &x10,
                             const Eigen::Vector3d &x20,

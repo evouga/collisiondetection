@@ -95,12 +95,14 @@ bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta
 		vector<StitchedEntry>::iterator next = it+1;
 		if(next == sh.end())
 			break;
+	
+		bool found = false;
 
 		double tinterval = next->time - it->time;
 
 		double t;
 		bool print = false;
-		if(ees.p0 == 2243 && ees.p1 == 2297 && ees.q0 == 11804 && ees.q1 == 12008)
+		if(ees.p0 == 1205 && ees.p1 == 2432 && ees.q0 == 7793 && ees.q1 == 12576)
 		{
 			std::cout << "Checking times " << it->time << " to " << next->time << " eta " << eta << std::endl;
 
@@ -111,11 +113,58 @@ bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta
 					      eta, t, print))
 		{
 			
-			if(ees.p0 == 2243 && ees.p1 == 2297 && ees.q0 == 11804 && ees.q1 == 12008)				
+			if(ees.p0 == 1205 && ees.p1 == 2432 && ees.q0 == 7793 && ees.q1 == 12576)				
 				std::cout << "Detected " << ees.p0 << " " << ees.p1 << " " << ees.q0 << " " << ees.q1 << " at " << it->time + t*tinterval << std::endl;
 			earliestTime = min(earliestTime, it->time + t*tinterval);				
-			return true;
+			found = true;
 		}
+
+		// Edge-edge vertices
+		if(CTCD::vertexEdgeCTCD(it->pos[0], it->pos[2], it->pos[3], next->pos[0], next->pos[2], next->pos[3], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexEdgeCTCD(it->pos[1], it->pos[2], it->pos[3], next->pos[1], next->pos[2], next->pos[3], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexEdgeCTCD(it->pos[2], it->pos[0], it->pos[1], next->pos[2], next->pos[0], next->pos[1], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexEdgeCTCD(it->pos[3], it->pos[0], it->pos[1], next->pos[3], next->pos[0], next->pos[1], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+
+		// edge vertex-edge vertex
+		if(CTCD::vertexVertexCTCD(it->pos[0], it->pos[2], next->pos[0], next->pos[2], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexVertexCTCD(it->pos[0], it->pos[3], next->pos[0], next->pos[3], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexVertexCTCD(it->pos[1], it->pos[2], next->pos[1], next->pos[2], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+		if(CTCD::vertexVertexCTCD(it->pos[1], it->pos[3], next->pos[1], next->pos[3], eta, t))
+		{
+			earliestTime = min(earliestTime, it->time + t*tinterval);
+			found = true;
+		}
+
+		if(found)
+			return true;
 	}
 	return false;		
 }

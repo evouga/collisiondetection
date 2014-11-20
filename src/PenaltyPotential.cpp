@@ -56,8 +56,8 @@ bool EdgeEdgePenaltyPotential::addForce(const Eigen::VectorXd &q, const Eigen::V
 
   Vector3d localF = stiffness * (outerEta - dist)/(outerEta - innerEta) * closestVec/dist;
   //if(print)
-  if(stencil.p0 == 1205 && stencil.p1 == 2432 && stencil.q0 == 7793 && stencil.q1 == 12576)
-  	  std::cout << "EE " << stencil.p0 << " " << stencil.p1 << " " <<  stencil.q0 << " " << stencil.q1 << " " << stiffness << " " << dist << " " << localF.transpose() << std::endl;
+  if(print || (stencil.p0 == 1205 && stencil.p1 == 2432 && stencil.q0 == 7793 && stencil.q1 == 12576) )
+  	  std::cout << "EE " << stencil.p0 << " " << stencil.p1 << " " <<  stencil.q0 << " " << stencil.q1 << " " << stiffness << " " << dist << " " << localF.transpose() << " " << baryp0 << " " << baryp1 << " " << baryq0 << " " << baryq1 << std::endl;
   F.segment<3>(3*stencil.p0) -= baryp0*localF;
   F.segment<3>(3*stencil.p1) -= baryp1*localF;
   F.segment<3>(3*stencil.q0) += baryq0*localF;
