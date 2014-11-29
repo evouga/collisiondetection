@@ -108,11 +108,15 @@ bool ActiveLayers::step(SimulationState &s)
 
 			F.setZero();
 			bool newtouched = group->addForce(newq, newv, F);
+#ifdef PARANOIA
 			if(newtouched && newtime < earliestTime_)
 			{
 				std::cout << newtime << ", thickness " << group->getOuterEta() << " wasn't suppose to fire before " << earliestTime_ << std::endl;
 				exit(0);
 			}
+#else
+			newtouched = newtouched; //STFU compiler
+#endif
 
 			for(set<int>::iterator it = group->getGroupStencil().begin(); it != group->getGroupStencil().end(); ++it)
 			{
@@ -226,9 +230,12 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 			std::cout << " with outer thickness " << groups_[deepestLayer_-1]->getOuterEta() << " and dt " << groups_[deepestLayer_-1]->getDt();
 		std::cout << std::endl;
 	}
-
+#ifdef PARANOIA
 	delete oldhistory_;
 	oldhistory_ = history_;
+#else
+	delete history_;
+#endif
 	history_ = new History(s.q);
 
 	while(!step(s));

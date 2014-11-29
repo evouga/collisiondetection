@@ -24,7 +24,8 @@ void History::addHistory(int vert, double time, const Eigen::Vector3d &pos, cons
 	newentry.time = time;
 	newentry.pos = pos;
 	history_[vert].push_back(newentry);
-	if(checkOldHistory)
+#ifdef PARANOIA
+	if(checkOldHistory && oldhistory)
 	{
 		int entry = history_[vert].size()  - 1;
 		if((int)oldhistory->history_[vert].size() <= entry)
@@ -43,6 +44,7 @@ void History::addHistory(int vert, double time, const Eigen::Vector3d &pos, cons
 			exit(0);
 		}
 	}
+#endif
 }
 
 void History::finishHistory(const Eigen::VectorXd &qend)
