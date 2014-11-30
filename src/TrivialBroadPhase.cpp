@@ -1,4 +1,4 @@
-#include "RetrospectiveDetection.h"
+#include "TrivialBroadPhase.h"
 #include "Mesh.h"
 
 void TrivialBroadPhase::findCollisionCandidates(const History &h, const Mesh &m, double outerEta, std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees, const std::set<int> &fixedVerts)

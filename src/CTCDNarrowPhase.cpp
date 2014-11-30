@@ -1,4 +1,4 @@
-#include "RetrospectiveDetection.h"
+#include "CTCDNarrowPhase.h"
 #include "History.h"
 #include "CTCD.h"
 #include <set>
@@ -7,22 +7,21 @@
 using namespace std;
 
 void CTCDNarrowPhase::findCollisions(const History &h, const set<pair<VertexFaceStencil, double> > &candidateVFS, const set<pair<EdgeEdgeStencil, double> > &candidateEES,
-		set<VertexFaceStencil> &vfs, set<EdgeEdgeStencil> &ees, double &earliestTime)
+		set<VertexFaceStencil> &vfs, set<EdgeEdgeStencil> &ees)
 {
-	earliestTime = 1.0;
 	for(set<pair<VertexFaceStencil, double> >::const_iterator it = candidateVFS.begin(); it != candidateVFS.end(); ++it)
 	{
-		if(checkVFS(h, it->first, it->second, earliestTime))
+		if(checkVFS(h, it->first, it->second))
 			vfs.insert(it->first);
 	}
 	for(set<pair<EdgeEdgeStencil, double> >::const_iterator it = candidateEES.begin(); it != candidateEES.end(); ++it)
 	{
-		if(checkEES(h, it->first, it->second, earliestTime))
+		if(checkEES(h, it->first, it->second))
 			ees.insert(it->first);
 	}
 }
 
-bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double eta, double &earliestTime)
+bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double eta)
 {
 	vector<int> verts;
 	verts.push_back(vfs.p);
@@ -38,18 +37,13 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 		if(next == sh.end())
 			break;
 
-		double tinterval = next->time - it->time;
-
-		bool found = false;
-
 		double t;
 		if(CTCD::vertexFaceCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 						next->pos[0], next->pos[1], next->pos[2], next->pos[3],
 						eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
 			//std::cout << "VF " << it->time + t*tinterval << " " << vfs.p << " " << vfs.q0 << " " << vfs.q1 << " " << vfs.q2 << std::endl;
-			found = true;
+			return true;
 		}
 			
 		// Vertex-face edges
@@ -59,8 +53,7 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						next->pos[0], next->pos[1+(edge%3)], next->pos[1+ ((edge+1)%3)],
 						eta, t))
 			{
-				earliestTime = min(earliestTime, it->time + t*tinterval);
-				found = true;
+				return true;
 			}
 		}
 		// Vertex-face vertices
@@ -70,17 +63,14 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						  next->pos[0], next->pos[1+vert],
 						  eta, t))
 			{
-				earliestTime = min(earliestTime, it->time + t*tinterval);
-				found = true;
+				return true;
 			}
 		}
-		if(found)
-			return true;
 	}
 	return false;
 }
 
-bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta, double &earliestTime)
+bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta)
 {
 	vector<int> verts;
 	verts.push_back(ees.p0);
@@ -96,65 +86,49 @@ bool CTCDNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta
 		if(next == sh.end())
 			break;
 	
-		bool found = false;
-
-		double tinterval = next->time - it->time;
-
 		double t;
 		if(CTCD::edgeEdgeCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 					next->pos[0], next->pos[1], next->pos[2], next->pos[3],
 					      eta, t))
 		{			
-			earliestTime = min(earliestTime, it->time + t*tinterval);				
-			found = true;
+			return true;
 		}
 
 		// Edge-edge vertices
 		if(CTCD::vertexEdgeCTCD(it->pos[0], it->pos[2], it->pos[3], next->pos[0], next->pos[2], next->pos[3], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexEdgeCTCD(it->pos[1], it->pos[2], it->pos[3], next->pos[1], next->pos[2], next->pos[3], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexEdgeCTCD(it->pos[2], it->pos[0], it->pos[1], next->pos[2], next->pos[0], next->pos[1], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexEdgeCTCD(it->pos[3], it->pos[0], it->pos[1], next->pos[3], next->pos[0], next->pos[1], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 
 		// edge vertex-edge vertex
 		if(CTCD::vertexVertexCTCD(it->pos[0], it->pos[2], next->pos[0], next->pos[2], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexVertexCTCD(it->pos[0], it->pos[3], next->pos[0], next->pos[3], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexVertexCTCD(it->pos[1], it->pos[2], next->pos[1], next->pos[2], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
+			return true;
 		}
 		if(CTCD::vertexVertexCTCD(it->pos[1], it->pos[3], next->pos[1], next->pos[3], eta, t))
 		{
-			earliestTime = min(earliestTime, it->time + t*tinterval);
-			found = true;
-		}
-
-		if(found)
 			return true;
+		}
 	}
 	return false;		
 }

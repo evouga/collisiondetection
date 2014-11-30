@@ -7,7 +7,7 @@
 #include <set>
 #include <iostream>
 #include "History.h"
-#include "RetrospectiveDetection.h"
+#include "CTCDNarrowPhase.h"
 #include "AABBBroadPhase.h"
 
 using namespace Eigen;
@@ -19,7 +19,7 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 }
 
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, double CoR, bool verbose) 
-	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), oldhistory_(NULL), verbose_(verbose), earliestTime_(0)
+	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), verbose_(verbose)
 {
 	bp_ = new AABBBroadPhase();
 	np_ = new CTCDNarrowPhase();
@@ -31,7 +31,6 @@ ActiveLayers::~ActiveLayers()
 		delete *it;
 	
 	delete history_;
-	delete oldhistory_;
 	delete bp_;
 	delete np_;
 }
@@ -107,16 +106,7 @@ bool ActiveLayers::step(SimulationState &s)
 			}
 
 			F.setZero();
-			bool newtouched = group->addForce(newq, newv, F);
-#ifdef PARANOIA
-			if(newtouched && newtime < earliestTime_)
-			{
-				std::cout << newtime << ", thickness " << group->getOuterEta() << " wasn't suppose to fire before " << earliestTime_ << std::endl;
-				exit(0);
-			}
-#else
-			newtouched = newtouched; //STFU compiler
-#endif
+			group->addForce(newq, newv, F);
 
 			for(set<int>::iterator it = group->getGroupStencil().begin(); it != group->getGroupStencil().end(); ++it)
 			{
@@ -136,7 +126,7 @@ bool ActiveLayers::step(SimulationState &s)
 						s.lastUpdateTime[3*vert+j] = newtime;
 					}
 			
-					history_->addHistory(vert, newtime, s.q.segment<3>(3*vert), oldhistory_, newtime < earliestTime_);
+					history_->addHistory(vert, newtime, s.q.segment<3>(3*vert));
 				}
 
 			}
@@ -192,11 +182,10 @@ double ActiveLayers::EEStencilThickness(EdgeEdgeStencil stencil)
 	return layerDepth(1);
 }
 
-bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, const set<int> &fixedVerts, double &earliestTime)
+bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfsToAdd, set<EdgeEdgeStencil> &eesToAdd, const set<int> &fixedVerts)
 {
 	vfsToAdd.clear();
 	eesToAdd.clear();
-	earliestTime = 1.0;
 	
 	bp_->findCollisionCandidates(*history_, m, outerEta_, vfsToAdd, eesToAdd, fixedVerts);
 	if(verbose_)
@@ -216,7 +205,7 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 
 	eesToAdd.clear();
 	vfsToAdd.clear();
-	np_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd, earliestTime);
+	np_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd);
 
 	return(!vfsToAdd.empty() || !eesToAdd.empty());
 }
@@ -230,12 +219,7 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 			std::cout << " with outer thickness " << groups_[deepestLayer_-1]->getOuterEta() << " and dt " << groups_[deepestLayer_-1]->getDt();
 		std::cout << std::endl;
 	}
-#ifdef PARANOIA
-	delete oldhistory_;
-	oldhistory_ = history_;
-#else
 	delete history_;
-#endif
 	history_ = new History(s.q);
 
 	while(!step(s));
@@ -253,17 +237,9 @@ bool ActiveLayers::runOneIteration(const Mesh &m, SimulationState &s)
 			fixedVerts.insert(i/3);
 	}
 
-	double t = 0;
-	bool collisions = collisionDetection(m, vfsToAdd, eesToAdd, fixedVerts, t);
+	bool collisions = collisionDetection(m, vfsToAdd, eesToAdd, fixedVerts);
 	if(verbose_)
-		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions, earliest at t=" << t << std::endl;
-
-	if(t < earliestTime_)
-	{
-		std::cout << "New earliest time " << t << " earlier than old " << earliestTime_ << std::endl;
-		exit(0);
-	}
-	earliestTime_ = t;
+		std::cout << "Found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge collisions" << std::endl;
 
 	rollback();
 

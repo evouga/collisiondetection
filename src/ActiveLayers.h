@@ -31,7 +31,7 @@ public:
 	void addEEStencil(EdgeEdgeStencil stencil);
 
 	bool runOneIteration(const Mesh &m, SimulationState &initialState);
-	bool collisionDetection(const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, const std::set<int> &fixedVerts, double &earliestTime);
+	bool collisionDetection(const Mesh &m, std::set<VertexFaceStencil> &vfDetected, std::set<EdgeEdgeStencil> &eeDetected, const std::set<int> &fixedVerts);
 
 private:
 	ActiveLayers(const ActiveLayers &other);
@@ -61,10 +61,8 @@ private:
 	BroadPhase *bp_;
 	NarrowPhase *np_;
 	History *history_;
-	History *oldhistory_;
 
 	bool verbose_;
-	double earliestTime_;
 };
 
 #endif
