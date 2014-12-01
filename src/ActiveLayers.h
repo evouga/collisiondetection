@@ -13,6 +13,7 @@ class Mesh;
 class History;
 class BroadPhase;
 class NarrowPhase;
+class SeparatingPlaneNarrowPhase;
 struct SimulationState;
 
 class PenaltyGroupComparator
@@ -60,6 +61,7 @@ private:
 
 	BroadPhase *bp_;
 	NarrowPhase *np_;
+	SeparatingPlaneNarrowPhase *backupnp_;
 	History *history_;
 
 	bool verbose_;

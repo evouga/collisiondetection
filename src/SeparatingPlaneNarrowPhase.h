@@ -12,9 +12,11 @@ public:
 private:
 	bool checkVFS(const History &h, VertexFaceStencil vfs, double eta);
 	bool checkEES(const History &h, EdgeEdgeStencil vfs, double eta);
-	bool planeIntersect(const Eigen::Vector3d &planePos, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptold, const Eigen::Vector3d &ptnew, double t);
+	double planeIntersect(const Eigen::Vector3d &planePosOld, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptOld, const Eigen::Vector3d &ptNew, double ptdt, double eta);
+
 
 	bool checkVFSInterval(const History &h, VertexFaceStencil vfs, double eta, double mint, double maxt);
+	bool checkEESInterval(const History &h, EdgeEdgeStencil vfs, double eta, double mint, double maxt);
 };
 
 #endif

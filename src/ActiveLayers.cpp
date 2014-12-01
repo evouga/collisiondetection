@@ -9,6 +9,7 @@
 #include "History.h"
 #include "CTCDNarrowPhase.h"
 #include "AABBBroadPhase.h"
+#include "SeparatingPlaneNarrowPhase.h"
 
 using namespace Eigen;
 using namespace std;
@@ -23,6 +24,7 @@ ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, doub
 {
 	bp_ = new AABBBroadPhase();
 	np_ = new CTCDNarrowPhase();
+	backupnp_ = new SeparatingPlaneNarrowPhase();
 }
 
 ActiveLayers::~ActiveLayers()
@@ -205,7 +207,19 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 
 	eesToAdd.clear();
 	vfsToAdd.clear();
-	np_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd);
+
+//	std::cout << "old code" << std::endl;
+	backupnp_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd);
+
+//	set<EdgeEdgeStencil> newees;
+//	set<VertexFaceStencil> newvfs;
+
+//	std::cout << "new code" << std::endl;
+	//np_->findCollisions(*history_, etavfs, etaees, newvfs, newees);
+
+//	std::cout << vfsToAdd.size() << "," << eesToAdd.size() << " vs " << newvfs.size() << "," << newees.size() << std::endl;
+	//if(vfsToAdd.size() != newvfs.size() || eesToAdd.size() != newees.size())
+//		exit(0);
 
 	return(!vfsToAdd.empty() || !eesToAdd.empty());
 }
