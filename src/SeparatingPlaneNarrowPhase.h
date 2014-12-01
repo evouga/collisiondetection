@@ -2,6 +2,7 @@
 #define SEPARATINGPLANENARROWPHASE_H
 
 #include "RetrospectiveDetection.h"
+#include "History.h"
 
 class SeparatingPlaneNarrowPhase : public NarrowPhase
 {
@@ -10,13 +11,14 @@ public:
 		std::set<VertexFaceStencil> &vfs, std::set<EdgeEdgeStencil> &ees);
 
 private:
+	enum StencilType {ST_VFS, ST_EES};
+
 	bool checkVFS(const History &h, VertexFaceStencil vfs, double eta);
 	bool checkEES(const History &h, EdgeEdgeStencil vfs, double eta);
 	double planeIntersect(const Eigen::Vector3d &planePosOld, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptOld, const Eigen::Vector3d &ptNew, double ptdt, double eta);
 
 
-	bool checkVFSInterval(const History &h, VertexFaceStencil vfs, double eta, double mint, double maxt);
-	bool checkEESInterval(const History &h, EdgeEdgeStencil vfs, double eta, double mint, double maxt);
+	bool checkInterval(StencilType type, const History &h, const std::vector<StitchedEntry> &sh, const std::vector<int> &verts, double eta, double mint, double maxt);
 };
 
 #endif

@@ -32,7 +32,6 @@ public:
 	int countHistoryEntries();
 	const Eigen::Vector3d getPosAtTime(int vert, double time) const;
 	void stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const;
-	void stitchCommonHistoryInterval(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory, double mint, double maxt) const;
 	const std::vector<HistoryEntry> &getVertexHistory(int vert) const {return history_[vert];}
 
 private:

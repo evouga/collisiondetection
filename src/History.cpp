@@ -82,28 +82,3 @@ void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<Sti
 	}
 }
 
-void History::stitchCommonHistoryInterval(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory, double mint, double maxt) const
-{
-	set<double> times;
-	int nverts = verts.size();
-	for(int i=0; i<nverts; i++)
-	{
-		for(vector<HistoryEntry>::const_iterator it = history_[verts[i]].begin(); it != history_[verts[i]].end(); ++it)
-			times.insert(it->time);
-	}
-	stitchedHistory.clear();
-	for(set<double>::const_iterator it = times.begin(); it != times.end(); ++it)
-	{
-		set<double>::const_iterator next = it;
-		++next;
-		if(next != times.end() && *next < mint)
-			continue;
-		StitchedEntry newentry;
-		newentry.time = *it;
-		for(int i=0; i<nverts; i++)
-			newentry.pos.push_back(getPosAtTime(verts[i], *it));
-		stitchedHistory.push_back(newentry);
-		if(*it > maxt)
-			break;
-	}
-}
