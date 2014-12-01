@@ -210,14 +210,22 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 
 	backupnp_->findCollisions(*history_, etavfs, etaees, vfsToAdd, eesToAdd);
 
-/*	set<EdgeEdgeStencil> newees;
+	set<EdgeEdgeStencil> newees;
 	set<VertexFaceStencil> newvfs;
 
 	np_->findCollisions(*history_, etavfs, etaees, newvfs, newees);
 
 	std::cout << vfsToAdd.size() << "," << eesToAdd.size() << " vs " << newvfs.size() << "," << newees.size() << std::endl;
+	for(set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)
+	{
+		std::cout << it->p << " " << it->q0 << " " << it->q1 << " " << it->q2 << std::endl;
+	}
+	for(set<VertexFaceStencil>::iterator it = newvfs.begin(); it != newvfs.end(); ++it)
+	{
+		std::cout << it->p << " " << it->q0 << " " << it->q1 << " " << it->q2 << std::endl;
+	}
 	if(vfsToAdd.size() != newvfs.size() || eesToAdd.size() != newees.size())
-		exit(0);*/
+		exit(0);
 
 	return(!vfsToAdd.empty() || !eesToAdd.empty());
 }
