@@ -64,21 +64,39 @@ const Eigen::Vector3d History::getPosAtTime(int vert, double time) const
 
 void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const
 {
-	set<double> times;
 	int nverts = verts.size();
+	set<double> times;
 	for(int i=0; i<nverts; i++)
 	{
 		for(vector<HistoryEntry>::const_iterator it = history_[verts[i]].begin(); it != history_[verts[i]].end(); ++it)
 			times.insert(it->time);
 	}
 	stitchedHistory.clear();
-	for(set<double>::const_iterator it = times.begin(); it != times.end(); ++it)
+
+	vector<vector<HistoryEntry>::const_iterator> its;
+	for(int i=0; i<nverts; i++)
+		its.push_back(history_[verts[i]].begin());
+
+	for(set<double>::iterator it = times.begin(); it != times.end(); ++it)
 	{
 		StitchedEntry newentry;
 		newentry.time = *it;
 		for(int i=0; i<nverts; i++)
-			newentry.pos.push_back(getPosAtTime(verts[i], *it));
+		{
+			vector<HistoryEntry>::const_iterator next = its[i];
+			++next;
+			while(next != history_[verts[i]].end() && next->time < *it)
+			{
+				++next;
+				++its[i];
+			}
+			Vector3d oldpos = its[i]->pos;
+			Vector3d newpos = next->pos;
+			double dt = next->time - its[i]->time;
+			double a = *it - its[i]->time;
+			double b = next->time - *it;
+			newentry.pos.push_back( (b*oldpos + a*newpos)/dt );
+		}
 		stitchedHistory.push_back(newentry);
 	}
 }
-

@@ -37,7 +37,7 @@ bool SeparatingPlaneNarrowPhase::checkVFS(const History &h, VertexFaceStencil vf
 }
 
 bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<StitchedEntry> &sh, const vector<int> &verts, double eta, double mint, double maxt)
-{	
+{
 	if(maxt < mint)
 		return false;
 
@@ -131,6 +131,9 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 		{
 			if(sh[i+1].time < mint)
 				break;
+
+			Vector3d newplanepos = planepos - (midt-sh[i+1].time)*planevel;
+
 			recurselower = false;
 			double dt = sh[i+1].time - sh[i].time;
 			lowert = dt;
@@ -139,7 +142,8 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 				Vector3d posold = sh[i+1].pos[vert];
 				Vector3d posnew = sh[i].pos[vert];
 				double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-				double t = planeIntersect(planepos, -planevel, sign*closest, posold, posnew, dt, eta);
+				double t = planeIntersect(newplanepos, -planevel, sign*closest, posold, posnew, dt, eta);
+
 				if(t >= 0 && t <= dt)
 				{
 					recurselower = true;
@@ -183,15 +187,18 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 		{
 			if(sh[i].time > maxt)
 				break;
+
+			Vector3d newplanepos = planepos + (sh[i].time - midt)*planevel;
+
 			recurseupper = false;
 			double dt = sh[i+1].time - sh[i].time;
 			uppert = dt;
 			for(int vert=0; vert<4; vert++)
 			{
-				Vector3d posold = sh[i+1].pos[vert];
-				Vector3d posnew = sh[i].pos[vert];
+				Vector3d posold = sh[i].pos[vert];
+				Vector3d posnew = sh[i+1].pos[vert];
 				double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-				double t = planeIntersect(planepos, planevel, sign*closest, posold, posnew, dt, eta);
+				double t = planeIntersect(newplanepos, planevel, sign*closest, posold, posnew, dt, eta);
 				if(t >= 0 && t <= dt)
 				{
 					recurseupper = true;
