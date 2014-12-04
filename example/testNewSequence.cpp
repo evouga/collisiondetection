@@ -79,14 +79,16 @@ void loadMesh(const char *filename, VectorXd &verts, Matrix3Xi &faces)
 
 int main(int argc, char *argv[])
 {
-	if(argc != 3)
+	if(argc != 5)
 	{
-		std::cerr << "Usage: testNewSequence (coarseMesh) (fineMeshBaseName_)" << std::endl;
+		std::cerr << "Usage: testNewSequence (outerRadius) (innerRadius) (coarseMesh) (fineMeshBaseName_)" << std::endl;
 		return -1;
 	}
 	VectorXd qcoarse;
 	Matrix3Xi fcoarse;
-	loadMesh(argv[1], qcoarse, fcoarse);
+	double outerRadius = strtod(argv[1], NULL);
+	double innerRadius = strtod(argv[2], NULL);
+	loadMesh(argv[3], qcoarse, fcoarse);
 	int numcoarseverts = qcoarse.size()/3;
 	std::cout << "Loaded coarse mesh with " << numcoarseverts << " vertices and " << fcoarse.cols() << " faces" << std::endl;
 
@@ -94,8 +96,8 @@ int main(int argc, char *argv[])
 	VectorXd qfine;
 	Matrix3Xi ffine;
 	stringstream initial;
-	initial << argv[2];
-	initial << "1.obj";
+	initial << argv[4];
+	initial << "0.obj";
 	loadMesh(initial.str().c_str(), qfine, ffine);
 	std::cout << "Loaded fine mesh with " << qfine.size()/3 << " vertices and " << ffine.cols() << " faces" << std::endl;
 	VectorXd q(qcoarse.size() + qfine.size());
@@ -122,7 +124,7 @@ int main(int argc, char *argv[])
 		fixedVerts.insert(qcoarse.size()/3 + i);
 
 	double distance = Distance::meshSelfDistance(q, f, fixedVerts);
-	while(distance < 1e-4)
+	while(distance < outerRadius)
 	{
 		std::cout << "Distance is " << distance << ". Inflating..." << std::endl;
 		VectorXd qnew = q;
@@ -133,16 +135,16 @@ int main(int argc, char *argv[])
 	for(int i=0; i<(int)qcoarse.size(); i++)
 		qcoarse[i] = q[i];
 
-	int curmesh = 1;
+	int curmesh = 0;
 	while(true)
 	{
 		stringstream curname;
-		curname << argv[2];
+		curname << argv[4];
 		curname << curmesh;
 		curname << ".obj";
 
 		stringstream nextname;
-		nextname << argv[2];
+		nextname << argv[4];
 		nextname << curmesh+1;
 		nextname << ".obj";
 
@@ -198,7 +200,7 @@ int main(int argc, char *argv[])
 		for(int i=0; i<(int)qfine1.size(); i++)
 			invmasses[qcoarse.size()+i] = 0;		
 
-		VelocityFilter::velocityFilter(q1, q2, f1, invmasses, 1e-4, 1e-6);
+		VelocityFilter::velocityFilter(q1, q2, f1, invmasses, outerRadius, innerRadius);
 		for(int i=0; i<(int)qcoarse.size(); i++)
 			qcoarse[i] = q2[i];
 	

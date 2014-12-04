@@ -9,6 +9,7 @@
 #include "History.h"
 #include "CTCDNarrowPhase.h"
 #include "AABBBroadPhase.h"
+#include "TrivialBroadPhase.h"
 #include "SeparatingPlaneNarrowPhase.h"
 
 using namespace Eigen;
@@ -23,6 +24,7 @@ ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, doub
 	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), verbose_(verbose)
 {
 	bp_ = new AABBBroadPhase();
+	//bp_ = new TrivialBroadPhase();
 	np_ = new SeparatingPlaneNarrowPhase();
 }
 
@@ -189,8 +191,8 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 	eesToAdd.clear();
 	
 	bp_->findCollisionCandidates(*history_, m, outerEta_, vfsToAdd, eesToAdd, fixedVerts);
-	if(verbose_)
-		std::cout << "Broad phase found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge candidates" << std::endl;
+	//if(verbose_)
+	//	std::cout << "Broad phase found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge candidates" << std::endl;
 	set<pair<VertexFaceStencil, double> > etavfs;
 	set<pair<EdgeEdgeStencil, double> > etaees;
 	for(set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)
