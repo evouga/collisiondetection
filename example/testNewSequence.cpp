@@ -200,7 +200,12 @@ int main(int argc, char *argv[])
 		for(int i=0; i<(int)qfine1.size(); i++)
 			invmasses[qcoarse.size()+i] = 0;		
 
-		VelocityFilter::velocityFilter(q1, q2, f1, invmasses, outerRadius, innerRadius);
+		int ret = VelocityFilter::velocityFilter(q1, q2, f1, invmasses, outerRadius, innerRadius);
+		if(ret < 0)
+		{
+			std::cout << "Velocity filter failed! Error code: " << ret << std::endl;
+			return -1;
+		}
 		for(int i=0; i<(int)qcoarse.size(); i++)
 			qcoarse[i] = q2[i];
 	
