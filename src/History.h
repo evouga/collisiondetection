@@ -35,6 +35,8 @@ public:
 	const std::vector<HistoryEntry> &getVertexHistory(int vert) const {return history_[vert];}
 
 private:
+	bool atEnd(const std::vector<std::vector<HistoryEntry>::const_iterator> &its, const std::vector<int> &verts) const;
+
 	std::vector<std::vector<HistoryEntry> > history_;
 };
 
