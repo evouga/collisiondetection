@@ -12,10 +12,10 @@ public:
 
 	/* Given a mesh with initial vertex positions qstart, triangle faces faces (each column of 
 	   faces specifies one triagle), and candidate ending positions qend, resolves collisions by
-	   perturbing the ending positions (a velocity filter). qend is overwritten with new eding
+	   perturbing the ending positions (a velocity filter). qend is overwritten with new ending
 	   positions. The mesh does not need to be manifold, nor must the faces be oriented: however,
 	   it is assumed that all vertices are part of at least one face (otherwise the algorithm aborts
-	   and returns DANGLING_VERTICES.
+	   and returns DANGLING_VERTICES.)
 	   The collision forces will respect the lumped inverse masses *per DOF* in the masses vector. 
 	   You can give some DOFs infinite mass by setting the corresponding entries to zero, and the
 	   algorithm will cope (if possible).
