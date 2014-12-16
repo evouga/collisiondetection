@@ -11,7 +11,7 @@ public:
 	const static int MAXROLLBACKS_EXCEEDED = -3;
 
 	/* Given a mesh with initial vertex positions qstart, triangle faces faces (each column of 
-	   faces specifies one triagle), and candidate ending positins qend, resolves collisions by
+	   faces specifies one triagle), and candidate ending positions qend, resolves collisions by
 	   perturbing the ending positions (a velocity filter). qend is overwritten with new eding
 	   positions. The mesh does not need to be manifold, nor must the faces be oriented: however,
 	   it is assumed that all vertices are part of at least one face (otherwise the algorithm aborts
@@ -23,6 +23,8 @@ public:
 	   apart will feel no force, and primitives approaching innerEta apart will feel infinite force.
 	   The input mesh qstart must not contain any vertex-face or edge-edge pairs that are already
 	   closer than innerEta apart. If it does, the algorithm aborts and returns STARTING_STATE_INTERSECTS.
+	   The starting positions should also be free of intersections, but the algorithm will not check for this.
+           Any collisions present in the initial configuration will be maintained in the output.
 	   The other parameters control the physics of the contact response. The coefficient of restitution CoR
            should be strictly positive and introduces damping into the simulation. Set it to 1.0 for perfectly
            elastic response. 
