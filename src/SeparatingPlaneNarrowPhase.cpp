@@ -32,32 +32,45 @@ bool SeparatingPlaneNarrowPhase::checkVFS(const History &h, VertexFaceStencil vf
 	verts.push_back(vfs.q2);
 	vector<StitchedEntry> sh;
 	h.stitchCommonHistory(verts, sh);
-	
-	return checkInterval(ST_VFS, h, sh, verts, eta, 0, 1.0);
+	int numentries = sh.size();
+	double eps = 1e-8;
+	for(int i=0; i<numentries-1; i++)
+	{
+		double entrydt = sh[i+1].time - sh[i].time;
+		eps = min(eps, 0.25*entrydt);
+	}
+	return checkInterval(ST_VFS, h, sh, verts, eta, 0, 1.0, eps);
 }
 
-bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<StitchedEntry> &sh, const vector<int> &verts, double eta, double mint, double maxt)
+bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<StitchedEntry> &sh, const vector<int> &verts, double eta, double mint, double maxt, double eps)
 {
 	if(maxt < mint)
 		return false;
 
-	const double eps = 1e-8;
 	int numentries = sh.size();
 
-	if(maxt-mint < 3*eps && numentries == 2)
+	if(maxt-mint < 3*eps)
 	{
-		vector<Vector3d> oldpos;
-		vector<Vector3d> newpos;
-		for(int vert=0; vert<4; vert++)
+		int maxtest=0;
+
+		while(sh[maxtest].time <= mint)
+			maxtest++;
+
+		if(sh[maxtest].time >= maxt)
 		{
-			oldpos.push_back(h.getPosAtTime(verts[vert], mint));
-			newpos.push_back(h.getPosAtTime(verts[vert], maxt));
+			vector<Vector3d> oldpos;
+			vector<Vector3d> newpos;
+			for(int vert=0; vert<4; vert++)
+			{
+				oldpos.push_back(h.getPosAtTime(verts[vert], mint));
+				newpos.push_back(h.getPosAtTime(verts[vert], maxt));
+			}
+			double t;
+			if(type == ST_VFS)
+				return CTCD::vertexFaceCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
+			else
+				return CTCD::edgeEdgeCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
 		}
-		double t;
-		if(type == ST_VFS)
-			return CTCD::vertexFaceCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
-		else
-			return CTCD::edgeEdgeCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
 
 	}
 
@@ -122,7 +135,7 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 	if(recurselower)
 	{
 		double newmaxt = midt - lowert + eps;
-		if(checkInterval(type, h, sh, verts, eta, mint, newmaxt))
+		if(checkInterval(type, h, sh, verts, eta, mint, newmaxt, eps))
 			return true;
 	}
 	else
@@ -153,7 +166,7 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 			if(recurselower)
 			{
 				double newmaxt = sh[i+1].time - lowert + eps;
-				if(checkInterval(type, h, sh, verts, eta, mint, newmaxt))
+				if(checkInterval(type, h, sh, verts, eta, mint, newmaxt, eps))
 					return true;
 				break;
 			}
@@ -178,7 +191,7 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 	if(recurseupper)
 	{
 		double newmint = midt + uppert - eps;
-		if(checkInterval(type, h, sh, verts, eta, newmint, maxt))
+		if(checkInterval(type, h, sh, verts, eta, newmint, maxt, eps))
 			return true;
 	}
 	else
@@ -208,7 +221,7 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 			if(recurseupper)
 			{
 				double newmint = sh[i].time + uppert - eps;
-				if(checkInterval(type, h, sh, verts, eta, newmint, maxt))
+				if(checkInterval(type, h, sh, verts, eta, newmint, maxt, eps))
 					return true;
 				break;
 			}
@@ -227,8 +240,16 @@ bool SeparatingPlaneNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees,
 	verts.push_back(ees.q1);
 	vector<StitchedEntry> sh;
 	h.stitchCommonHistory(verts, sh);
+	
+	int numentries = sh.size();
+	double eps = 1e-8;
+	for(int i=0; i<numentries-1; i++)
+	{
+		double entrydt = sh[i+1].time - sh[i].time;
+		eps = min(eps, 0.25*entrydt);
+	}
 
-	return checkInterval(ST_EES, h, sh, verts, eta, 0.0, 1.0);
+	return checkInterval(ST_EES, h, sh, verts, eta, 0.0, 1.0, eps);
 }
 
 double SeparatingPlaneNarrowPhase::planeIntersect(const Eigen::Vector3d &planePos, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptOld, const Eigen::Vector3d &ptNew, double ptdt, double eta)

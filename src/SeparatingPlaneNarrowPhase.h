@@ -18,7 +18,7 @@ private:
 	double planeIntersect(const Eigen::Vector3d &planePosOld, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptOld, const Eigen::Vector3d &ptNew, double ptdt, double eta);
 
 
-	bool checkInterval(StencilType type, const History &h, const std::vector<StitchedEntry> &sh, const std::vector<int> &verts, double eta, double mint, double maxt);
+	bool checkInterval(StencilType type, const History &h, const std::vector<StitchedEntry> &sh, const std::vector<int> &verts, double eta, double mint, double maxt, double eps);
 };
 
 #endif
