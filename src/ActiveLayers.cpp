@@ -8,7 +8,7 @@
 #include <iostream>
 #include "History.h"
 #include "CTCDNarrowPhase.h"
-#include "AABBBroadPhase.h"
+#include "KDOPBroadPhase.h"
 #include "TrivialBroadPhase.h"
 #include "SeparatingPlaneNarrowPhase.h"
 
@@ -23,7 +23,7 @@ bool PenaltyGroupComparator::operator()(const PenaltyGroup *first, const Penalty
 ActiveLayers::ActiveLayers(double outerEta, double innerEta, double baseDt, double baseStiffness, double terminationTime, double CoR, bool verbose) 
 	: outerEta_(outerEta), innerEta_(innerEta), baseDt_(baseDt), baseStiffness_(baseStiffness), termTime_(terminationTime), CoR_(CoR), deepestLayer_(0), history_(NULL), verbose_(verbose)
 {
-	bp_ = new AABBBroadPhase();
+	bp_ = new KDOPBroadPhase();
 	//bp_ = new TrivialBroadPhase();
 	np_ = new SeparatingPlaneNarrowPhase();
 }
@@ -191,8 +191,8 @@ bool ActiveLayers::collisionDetection(const Mesh &m, set<VertexFaceStencil> &vfs
 	eesToAdd.clear();
 	
 	bp_->findCollisionCandidates(*history_, m, outerEta_, vfsToAdd, eesToAdd, fixedVerts);
-	//if(verbose_)
-	//	std::cout << "Broad phase found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge candidates" << std::endl;
+	if(verbose_)
+	  std::cout << "Broad phase found " << vfsToAdd.size() << " vertex-face and " << eesToAdd.size() << " edge-edge candidates" << std::endl;
 	set<pair<VertexFaceStencil, double> > etavfs;
 	set<pair<EdgeEdgeStencil, double> > etaees;
 	for(set<VertexFaceStencil>::iterator it = vfsToAdd.begin(); it != vfsToAdd.end(); ++it)

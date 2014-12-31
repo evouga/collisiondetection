@@ -78,6 +78,7 @@ void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<Sti
 		double newtime = numeric_limits<double>::infinity();
 		StitchedEntry newentry;
 		newentry.time = curtime;
+		newentry.pos.resize(nverts);
 		for(int i=0; i<nverts; i++)
 		{
 			vector<HistoryEntry>::const_iterator next = its[i];
@@ -89,14 +90,14 @@ void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<Sti
 			}
 			Vector3d oldpos = its[i]->pos;
 			if(next == history_[verts[i]].end())
-				newentry.pos.push_back(oldpos);
+				newentry.pos[i] = oldpos;
 			else
 			{
 				Vector3d newpos = next->pos;
 				double dt = next->time - its[i]->time;
 				double a = curtime - its[i]->time;
 				double b = next->time - curtime;
-				newentry.pos.push_back( (b*oldpos + a*newpos)/dt );
+				newentry.pos[i] = (b*oldpos + a*newpos)/dt;
 				newtime = min(newtime, next->time);
 			}
 		}
