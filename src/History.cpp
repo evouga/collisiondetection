@@ -46,20 +46,37 @@ int History::countHistoryEntries()
 	return total;
 }
 
-const Eigen::Vector3d History::getPosAtTime(int vert, double time) const
+void History::getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx) const
 {
-	vector<HistoryEntry>::const_iterator prev = history_[vert].begin();
-	for(vector<HistoryEntry>::const_iterator it = history_[vert].begin(); it != history_[vert].end() && it->time <= time; ++it)
-		prev = it;
-	vector<HistoryEntry>::const_iterator next = prev + 1;
-	if(next == history_[vert].end())
-		return prev->pos;
-	assert(prev->time <= time && next->time > time);
-	double dt = next->time - prev->time;
-	if(dt == 0)
-		return next->pos;
-	double alpha = (time-prev->time)/dt;
-	return (1.0-alpha)*prev->pos + alpha*next->pos;
+	return getPosAtTime(vert, time, pos, idx, 0, history_[vert].size()-1);
+}
+
+void History::getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx, int start, int end) const
+{
+	const vector<HistoryEntry> &hist = history_[vert];
+	if(end-start < 10)
+	{
+		int next = start;
+		while(hist[next].time <= time && next < (int)hist.size())
+			next++;
+		int prev = next-1;
+		if(next == (int)hist.size())
+		{
+			pos = hist[prev].pos;
+			idx = prev;
+			return;
+		}
+		double dt = hist[next].time - hist[prev].time;
+		double alpha = (time - hist[prev].time)/dt;
+		pos = (1.0 - alpha)*hist[prev].pos + alpha*hist[next].pos;
+		idx = prev;
+		return;
+	}
+	int mid = (start+end)/2;
+	if(hist[mid].time < time)
+		return getPosAtTime(vert, time, pos, idx, mid, end);
+	else
+		return getPosAtTime(vert, time, pos, idx, start, mid);
 }
 
 void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const

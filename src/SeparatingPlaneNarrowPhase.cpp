@@ -30,41 +30,36 @@ bool SeparatingPlaneNarrowPhase::checkVFS(const History &h, VertexFaceStencil vf
 	verts.push_back(vfs.q0);
 	verts.push_back(vfs.q1);
 	verts.push_back(vfs.q2);
-	vector<StitchedEntry> sh;
-	h.stitchCommonHistory(verts, sh);
-	int numentries = sh.size();
 	double eps = 1e-8;
-	for(int i=0; i<numentries-1; i++)
-	{
-		double entrydt = sh[i+1].time - sh[i].time;
-		eps = min(eps, 0.25*entrydt);
-	}
-	return checkInterval(ST_VFS, h, sh, verts, eta, 0, 1.0, eps);
+	return checkInterval(ST_VFS, h, verts, eta, 0, 1.0, eps);
 }
 
-bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<StitchedEntry> &sh, const vector<int> &verts, double eta, double mint, double maxt, double eps)
+bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<int> &verts, double eta, double mint, double maxt, double eps)
 {
 	if(maxt < mint)
 		return false;
 
-	int numentries = sh.size();
-
 	if(maxt-mint < 3*eps)
 	{
-		int maxtest=0;
-
-		while(sh[maxtest].time <= mint)
-			maxtest++;
-
-		if(sh[maxtest].time >= maxt)
+		bool ok = true;
+		vector<Vector3d> oldpos(4);
+		vector<Vector3d> newpos(4);
+			
+		for(int i=0; i<4; i++)
 		{
-			vector<Vector3d> oldpos;
-			vector<Vector3d> newpos;
-			for(int vert=0; vert<4; vert++)
+			Vector3d dummy;
+			int oldidx, newidx;
+			h.getPosAtTime(verts[i], mint, oldpos[i], oldidx);
+			h.getPosAtTime(verts[i], maxt, newpos[i], newidx);
+			if(oldidx != newidx)
 			{
-				oldpos.push_back(h.getPosAtTime(verts[vert], mint));
-				newpos.push_back(h.getPosAtTime(verts[vert], maxt));
+				ok = false;
+				break;
 			}
+		}
+
+		if(ok)
+		{
 			double t;
 			if(type == ST_VFS)
 				return CTCD::vertexFaceCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
@@ -75,9 +70,10 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 	}
 
 	double midt = 0.5*(mint+maxt);
-	vector<Eigen::Vector3d> midpos;
+	vector<Eigen::Vector3d> midpos(4);
+	vector<int> mididx(4);
 	for(int i=0; i<4; i++)
-		midpos.push_back(h.getPosAtTime(verts[i], midt));
+		h.getPosAtTime(verts[i], midt, midpos[i], mididx[i]);
 
 	double bary1, bary2, bary3, bary4;
 	Vector3d closest;
@@ -94,139 +90,61 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 		return true;
 	}
 
-	// find wrapping history entries
-
-
-	int maxhist = 0;
-
-	while(sh[maxhist].time < midt)
-		maxhist++;
-	int minhist = maxhist-1;
+	// find separating plane
 
 	Vector3d planepos, planevel;	
+
+	Vector3d prevpos[4];
+	Vector3d nextpos[4];
+	double dts[4];
+	for(int i=0; i<4; i++)
+	{
+		prevpos[i] = h.getVertexHistory(verts[i])[mididx[i]].pos;
+		nextpos[i] = h.getVertexHistory(verts[i])[mididx[i]+1].pos;
+		dts[i] = h.getVertexHistory(verts[i])[mididx[i]+1].time - h.getVertexHistory(verts[i])[mididx[i]].time;
+	}
 
 	if(type == ST_VFS)
 	{
 		planepos = 0.5*(midpos[0] + bary1*midpos[1] + bary2*midpos[2] + bary3*midpos[3]);
-		planevel = 0.5*(sh[maxhist].pos[0]-sh[minhist].pos[0] + bary1*(sh[maxhist].pos[1]-sh[minhist].pos[1]) + bary2*(sh[maxhist].pos[2]-sh[minhist].pos[2]) + bary3*(sh[maxhist].pos[3]-sh[minhist].pos[3]) )/(sh[maxhist].time - sh[minhist].time);
+		planevel = 0.5*( (nextpos[0]-prevpos[0])/dts[0] + bary1*(nextpos[1]-prevpos[1])/dts[1] + bary2*(nextpos[2]-prevpos[2])/dts[2] + bary3*(nextpos[3]-prevpos[3])/dts[3] );
 	}
 	else
 	{
 		planepos = 0.5*(bary1*midpos[0] + bary2*midpos[1] + bary3*midpos[2] + bary4*midpos[3]);
-		planevel = 0.5*(bary1*(sh[maxhist].pos[0]-sh[minhist].pos[0]) + bary2*(sh[maxhist].pos[1]-sh[minhist].pos[1]) + bary3*(sh[maxhist].pos[2]-sh[minhist].pos[2]) + bary4*(sh[maxhist].pos[3]-sh[minhist].pos[3]) )/(sh[maxhist].time - sh[minhist].time);
+		planevel = 0.5*(bary1*(nextpos[0]-prevpos[0])/dts[0] + bary2*(nextpos[1]-prevpos[1])/dts[1] + bary3*(nextpos[2]-prevpos[2])/dts[2] + bary4*(nextpos[3]-prevpos[3])/dts[3] );
 	}
 	closest /= closest.norm();
 	
 	// find upper bound of lower interval
-	bool recurselower = false;
-	double dt = midt - sh[minhist].time;
-	double lowert = dt;
+
+	double t = std::numeric_limits<double>::infinity();
 	for(int vert=0; vert<4; vert++)
 	{
 		double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-		Vector3d posnew = sh[minhist].pos[vert];
-		double t = planeIntersect(planepos, -planevel, sign*closest, midpos[vert], posnew, dt, eta);
-		if(t >= 0 && t <= dt)
-		{
-			recurselower = true;
-			lowert = min(lowert, t);
-		}
+		t = min(t, planeTrajectoryIntersect(h.getVertexHistory(verts[vert]), mididx[vert], false, planepos, planevel, sign*closest, midpos[vert], midt, eta));
 	}
-	if(recurselower)
+	if(t < 1.0)
 	{
-		double newmaxt = midt - lowert + eps;
-		if(checkInterval(type, h, sh, verts, eta, mint, newmaxt, eps))
+		double newmaxt = midt - t + eps;
+		if(checkInterval(type, h, verts, eta, mint, newmaxt, eps))
 			return true;
-	}
-	else
-	{
-		for(int i=minhist-1; i >= 0; i--)
-		{
-			if(sh[i+1].time < mint)
-				break;
-
-			Vector3d newplanepos = planepos - (midt-sh[i+1].time)*planevel;
-
-			recurselower = false;
-			double dt = sh[i+1].time - sh[i].time;
-			lowert = dt;
-			for(int vert=0; vert<4; vert++)
-			{
-				Vector3d posold = sh[i+1].pos[vert];
-				Vector3d posnew = sh[i].pos[vert];
-				double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-				double t = planeIntersect(newplanepos, -planevel, sign*closest, posold, posnew, dt, eta);
-
-				if(t >= 0 && t <= dt)
-				{
-					recurselower = true;
-					lowert = min(lowert, t);
-				}
-			}
-			if(recurselower)
-			{
-				double newmaxt = sh[i+1].time - lowert + eps;
-				if(checkInterval(type, h, sh, verts, eta, mint, newmaxt, eps))
-					return true;
-				break;
-			}
-		}
 	}
 	
 	// find lower bound of upper interval
-	bool recurseupper = false;
-	dt = sh[maxhist].time - midt;
-	double uppert = dt;
+
+	t = std::numeric_limits<double>::infinity();
 	for(int vert=0; vert<4; vert++)
 	{
 		double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-		Vector3d posnew = sh[maxhist].pos[vert];
-		double t = planeIntersect(planepos, planevel, sign*closest, midpos[vert], posnew, dt, eta);
-		if(t >= 0 && t <= dt)
-		{
-			recurseupper = true;
-			uppert = min(uppert, t);
-		}
+		t = min(t, planeTrajectoryIntersect(h.getVertexHistory(verts[vert]), mididx[vert]+1, true, planepos, planevel, sign*closest, midpos[vert], midt, eta));		
 	}
-	if(recurseupper)
+	if(t < 1.0)
 	{
-		double newmint = midt + uppert - eps;
-		if(checkInterval(type, h, sh, verts, eta, newmint, maxt, eps))
+		double newmint = midt + t - eps;
+		if(checkInterval(type, h, verts, eta, newmint, maxt, eps))
 			return true;
 	}
-	else
-	{
-		for(int i=maxhist; i < numentries-1; i++)
-		{
-			if(sh[i].time > maxt)
-				break;
-
-			Vector3d newplanepos = planepos + (sh[i].time - midt)*planevel;
-
-			recurseupper = false;
-			double dt = sh[i+1].time - sh[i].time;
-			uppert = dt;
-			for(int vert=0; vert<4; vert++)
-			{
-				Vector3d posold = sh[i].pos[vert];
-				Vector3d posnew = sh[i+1].pos[vert];
-				double sign = (vert == 0 || (vert == 1 && type == ST_EES)) ? -1.0 : 1.0;
-				double t = planeIntersect(newplanepos, planevel, sign*closest, posold, posnew, dt, eta);
-				if(t >= 0 && t <= dt)
-				{
-					recurseupper = true;
-					uppert = min(uppert, t);
-				}
-			}
-			if(recurseupper)
-			{
-				double newmint = sh[i].time + uppert - eps;
-				if(checkInterval(type, h, sh, verts, eta, newmint, maxt, eps))
-					return true;
-				break;
-			}
-		}
-	}	
 
 	return false;
 }
@@ -238,18 +156,50 @@ bool SeparatingPlaneNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees,
 	verts.push_back(ees.p1);
 	verts.push_back(ees.q0);
 	verts.push_back(ees.q1);
-	vector<StitchedEntry> sh;
-	h.stitchCommonHistory(verts, sh);
-	
-	int numentries = sh.size();
 	double eps = 1e-8;
-	for(int i=0; i<numentries-1; i++)
+	return checkInterval(ST_EES, h, verts, eta, 0.0, 1.0, eps);
+}
+
+double SeparatingPlaneNarrowPhase::planeTrajectoryIntersect(const vector<HistoryEntry> &hist, int startidx, bool forward, const Eigen::Vector3d &planePos, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptstart, double timestart, double eta)
+{	
+	// check partial window
+	double dt = (forward ? hist[startidx].time - timestart : timestart - hist[startidx].time);
+	Vector3d newpos = hist[startidx].pos;
+	double t = planeIntersect(planePos, (forward ? 1.0 : -1.0) * planeVel, planeNormal, ptstart, newpos, dt, eta);
+	if(t >= 0 && t <= dt)
+		return t;
+
+	if(forward)
 	{
-		double entrydt = sh[i+1].time - sh[i].time;
-		eps = min(eps, 0.25*entrydt);
+		for(int i=startidx; i<(int)hist.size(); i++)
+		{
+			if(i == (int)hist.size())
+				return numeric_limits<double>::infinity();
+			int next = i+1;
+			Vector3d newplanepos = planePos + (hist[i].time - timestart)*planeVel;
+			double dt = hist[next].time - hist[i].time;
+			double t = planeIntersect(newplanepos, planeVel, planeNormal, hist[i].pos, hist[next].pos, dt, eta);
+			if(t >= 0 && t <= dt)
+				return hist[i].time + t - timestart;
+		}
+	}
+	else
+	{
+		for(int i=startidx; i>=0; i--)
+		{
+			if(i == 0)
+				return numeric_limits<double>::infinity();
+			int prev = i-1;
+			Vector3d newplanepos = planePos - (timestart - hist[i].time)*planeVel;
+			double dt = hist[i].time - hist[prev].time;
+			double t = planeIntersect(newplanepos, -planeVel, planeNormal, hist[i].pos, hist[prev].pos, dt, eta);
+			if(t >= 0 && t <= dt)
+				return timestart - (hist[i].time - t);
+		}
 	}
 
-	return checkInterval(ST_EES, h, sh, verts, eta, 0.0, 1.0, eps);
+	//unreachable
+	return numeric_limits<double>::infinity();
 }
 
 double SeparatingPlaneNarrowPhase::planeIntersect(const Eigen::Vector3d &planePos, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptOld, const Eigen::Vector3d &ptNew, double ptdt, double eta)
