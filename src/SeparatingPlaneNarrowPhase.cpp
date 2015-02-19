@@ -11,27 +11,37 @@ using namespace Eigen;
 void SeparatingPlaneNarrowPhase::findCollisions(const History &h, const set<pair<VertexFaceStencil, double> > &candidateVFS, const set<pair<EdgeEdgeStencil, double> > &candidateEES,
 		set<VertexFaceStencil> &vfs, set<EdgeEdgeStencil> &ees)
 {
+	double eps = h.computeMinimumGap()/4.0;
 	for(set<pair<VertexFaceStencil, double> >::const_iterator it = candidateVFS.begin(); it != candidateVFS.end(); ++it)
 	{
-		if(checkVFS(h, it->first, it->second))
+		if(checkVFS(h, it->first, it->second, eps))
 			vfs.insert(it->first);
 	}
 	for(set<pair<EdgeEdgeStencil, double> >::const_iterator it = candidateEES.begin(); it != candidateEES.end(); ++it)
 	{
-		if(checkEES(h, it->first, it->second))
+		if(checkEES(h, it->first, it->second, eps))
 			ees.insert(it->first);
 	}
 }
 
-bool SeparatingPlaneNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double eta)
+bool SeparatingPlaneNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double eta, double eps)
 {
 	vector<int> verts;
 	verts.push_back(vfs.p);
 	verts.push_back(vfs.q0);
 	verts.push_back(vfs.q1);
 	verts.push_back(vfs.q2);
-	double eps = 1e-8;
 	return checkInterval(ST_VFS, h, verts, eta, 0, 1.0, eps);
+}
+
+bool SeparatingPlaneNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta, double eps)
+{
+	vector<int> verts;
+	verts.push_back(ees.p0);
+	verts.push_back(ees.p1);
+	verts.push_back(ees.q0);
+	verts.push_back(ees.q1);
+	return checkInterval(ST_EES, h, verts, eta, 0.0, 1.0, eps);
 }
 
 bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &h, const vector<int> &verts, double eta, double mint, double maxt, double eps)
@@ -126,7 +136,7 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 	}
 	if(t < 1.0)
 	{
-		double newmaxt = midt - t + eps;
+		double newmaxt = midt - max(0.0, t - eps);
 		if(checkInterval(type, h, verts, eta, mint, newmaxt, eps))
 			return true;
 	}
@@ -141,23 +151,12 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 	}
 	if(t < 1.0)
 	{
-		double newmint = midt + t - eps;
+		double newmint = midt + max(0.0, t - eps);
 		if(checkInterval(type, h, verts, eta, newmint, maxt, eps))
 			return true;
 	}
 
 	return false;
-}
-
-bool SeparatingPlaneNarrowPhase::checkEES(const History &h, EdgeEdgeStencil ees, double eta)
-{
-	vector<int> verts;
-	verts.push_back(ees.p0);
-	verts.push_back(ees.p1);
-	verts.push_back(ees.q0);
-	verts.push_back(ees.q1);
-	double eps = 1e-8;
-	return checkInterval(ST_EES, h, verts, eta, 0.0, 1.0, eps);
 }
 
 double SeparatingPlaneNarrowPhase::planeTrajectoryIntersect(const vector<HistoryEntry> &hist, int startidx, bool forward, const Eigen::Vector3d &planePos, const Eigen::Vector3d &planeVel, const Eigen::Vector3d &planeNormal, const Eigen::Vector3d &ptstart, double timestart, double eta)

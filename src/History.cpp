@@ -79,6 +79,22 @@ void History::getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx
 		return getPosAtTime(vert, time, pos, idx, start, mid);
 }
 
+double History::computeMinimumGap() const
+{
+	double result = 1.0;
+	int numverts = history_.size();
+	for(int i=0; i<numverts; i++)
+	{
+		int nentries = history_[i].size();
+		for(int j=1; j<nentries; j++)
+		{
+			double gap = history_[i][j].time - history_[i][j-1].time;
+			result = min(gap, result);
+		}
+	}
+	return result;
+}
+
 void History::stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const
 {
 	// Assumes there is always a history entry at time 0 and 1

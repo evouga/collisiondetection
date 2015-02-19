@@ -33,7 +33,7 @@ public:
 	void getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx) const;
 	void stitchCommonHistory(const std::vector<int> &verts, std::vector<StitchedEntry> &stitchedHistory) const;
 	const std::vector<HistoryEntry> &getVertexHistory(int vert) const {return history_[vert];}
-
+	double computeMinimumGap() const;
 private:
 	bool atEnd(const std::vector<std::vector<HistoryEntry>::const_iterator> &its, const std::vector<int> &verts) const;
 	void getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx, int begin, int end) const;
