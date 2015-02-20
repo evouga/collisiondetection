@@ -57,7 +57,7 @@ void History::getPosAtTime(int vert, double time, Eigen::Vector3d &pos, int &idx
 	if(end-start < 10)
 	{
 		int next = start;
-		while(hist[next].time <= time && next < (int)hist.size())
+		while(next < (int)hist.size() && hist[next].time <= time)
 			next++;
 		int prev = next-1;
 		if(next == (int)hist.size())

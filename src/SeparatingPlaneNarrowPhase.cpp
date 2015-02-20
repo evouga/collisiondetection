@@ -172,7 +172,7 @@ double SeparatingPlaneNarrowPhase::planeTrajectoryIntersect(const vector<History
 	{
 		for(int i=startidx; i<(int)hist.size(); i++)
 		{
-			if(i == (int)hist.size())
+			if(i == (int)hist.size()-1)
 				return numeric_limits<double>::infinity();
 			int next = i+1;
 			Vector3d newplanepos = planePos + (hist[i].time - timestart)*planeVel;
