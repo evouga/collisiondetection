@@ -37,15 +37,13 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 		if(next == sh.end())
 			break;
 
-		double tinterval = next->time - it->time;
+//		double tinterval = next->time - it->time;
 
 		double t;
 		if(CTCD::vertexFaceCTCD(it->pos[0], it->pos[1], it->pos[2], it->pos[3],
 						next->pos[0], next->pos[1], next->pos[2], next->pos[3],
 						eta, t))
 		{
-			if(verts[0] == 141 && verts[1] == 7 && verts[2] == 12 && verts[3] == 19)
-				std::cout << "VF " << it->time + t*tinterval << std::endl;
 			return true;
 		}
 			
@@ -56,8 +54,6 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						next->pos[0], next->pos[1+(edge%3)], next->pos[1+ ((edge+1)%3)],
 						eta, t))
 			{
-			if(verts[0] == 141 && verts[1] == 7 && verts[2] == 12 && verts[3] == 19)
-				std::cout << "VF " << it->time + t*tinterval << std::endl;
 				return true;
 			}
 		}
@@ -68,8 +64,6 @@ bool CTCDNarrowPhase::checkVFS(const History &h, VertexFaceStencil vfs, double e
 						  next->pos[0], next->pos[1+vert],
 						  eta, t))
 			{
-			if(verts[0] == 141 && verts[1] == 7 && verts[2] == 12 && verts[3] == 19)
-				std::cout << "VF " << it->time + t*tinterval << std::endl;
 				return true;
 			}
 		}

@@ -72,9 +72,74 @@ bool SeparatingPlaneNarrowPhase::checkInterval(StencilType type, const History &
 		{
 			double t;
 			if(type == ST_VFS)
-				return CTCD::vertexFaceCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
+			{
+				if(CTCD::vertexFaceCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t))
+					return true;
+				// Vertex-face edges
+				for(int edge=0; edge<3; edge++)
+				{
+					if(CTCD::vertexEdgeCTCD(oldpos[0], oldpos[1+(edge%3)], oldpos[1+ ((edge+1)%3)],
+						newpos[0], newpos[1+(edge%3)], newpos[1+ ((edge+1)%3)],
+						eta, t))
+					{
+						return true;
+					}
+				}
+				// Vertex-face vertices
+				for(int vert=0; vert<3; vert++)
+				{
+					if(CTCD::vertexVertexCTCD(oldpos[0], oldpos[1+vert],
+						  newpos[0], newpos[1+vert],
+						  eta, t))
+					{
+						return true;
+					}
+				}
+				return false;
+			}
 			else
-				return CTCD::edgeEdgeCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t);
+			{
+				if(CTCD::edgeEdgeCTCD(oldpos[0], oldpos[1], oldpos[2], oldpos[3], newpos[0], newpos[1], newpos[2], newpos[3], eta, t))
+					return true;
+
+				// Edge-edge vertices
+				if(CTCD::vertexEdgeCTCD(oldpos[0], oldpos[2], oldpos[3], newpos[0], newpos[2], newpos[3], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexEdgeCTCD(oldpos[1], oldpos[2], oldpos[3], newpos[1], newpos[2], newpos[3], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexEdgeCTCD(oldpos[2], oldpos[0], oldpos[1], newpos[2], newpos[0], newpos[1], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexEdgeCTCD(oldpos[3], oldpos[0], oldpos[1], newpos[3], newpos[0], newpos[1], eta, t))
+				{
+					return true;
+				}
+
+				// edge vertex-edge vertex
+				if(CTCD::vertexVertexCTCD(oldpos[0], oldpos[2], newpos[0], newpos[2], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexVertexCTCD(oldpos[0], oldpos[3], newpos[0], newpos[3], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexVertexCTCD(oldpos[1], oldpos[2], newpos[1], newpos[2], eta, t))
+				{
+					return true;
+				}
+				if(CTCD::vertexVertexCTCD(oldpos[1], oldpos[3], newpos[1], newpos[3], eta, t))
+				{
+					return true;
+				}
+
+				return false;
+			}
 		}
 
 	}

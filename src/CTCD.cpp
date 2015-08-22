@@ -43,7 +43,7 @@ int CTCD::getQuadRoots(double a, double b, double c, double &t0, double &t1) {
         sign = -1;
 
     double D = b * b - 4 * a * c;
-    if (D > 0)
+    if (D >= 0)
     {
         roots = 2;
         double q = -0.5 * (b + sign * sqrt(D));
@@ -51,11 +51,6 @@ int CTCD::getQuadRoots(double a, double b, double c, double &t0, double &t1) {
         t1 = c / q;
         if (t0 > t1)
             std::swap(t1, t0);
-    }
-    else if (D == 0)
-    {
-        roots = 1;
-        t0 = -b / a / 2.0;
     }
     return roots;
 }
