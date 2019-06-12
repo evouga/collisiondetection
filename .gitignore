@@ -1,4 +1,4 @@
-obj/*
+build/*
 bin/*
 examples/bin/*
 examples/obj/*
